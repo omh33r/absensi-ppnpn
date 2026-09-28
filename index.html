@@ -267,7 +267,7 @@
             <div id="adminTabUserView" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-bold text-slate-800">Daftar Pegawai PPNPN Terdaftar</h3>
-                    <button onclick="openModalTambahUser()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow transition">
+                    <button onclick="openModalUser('tambah')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow transition">
                         <i class="fa-solid fa-user-plus mr-1.5"></i> + Registrasi Pegawai & Wajah Baru
                     </button>
                 </div>
@@ -340,14 +340,16 @@
 
     </main>
 
-    <!-- MODAL TAMBAH USER PPNPN DENGAN REKAM WAJAH -->
-    <div id="modalTambahUser" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <!-- MODAL REGISTRASI / EDIT PEGAWAI PPNPN -->
+    <div id="modalUserForm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 overflow-y-auto">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4 my-8">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-bold text-lg text-slate-800">Registrasi Pegawai & Biometrik Wajah</h3>
-                <button onclick="closeModalTambahUser()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h3 id="modalUserTitle" class="font-bold text-lg text-slate-800">Registrasi Pegawai & Wajah</h3>
+                <button onclick="closeModalUser()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="handleTambahUser(event)" class="space-y-3 text-sm">
+            <form onsubmit="handleSaveUser(event)" class="space-y-3 text-sm">
+                <input type="hidden" id="editOriginalUsername">
+                
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Username Login</label>
                     <input type="text" id="addUsername" required class="w-full border rounded-lg p-2.5" placeholder="Contoh: ahmad">
@@ -365,20 +367,44 @@
                     <input type="password" id="addPassword" required class="w-full border rounded-lg p-2.5" placeholder="Password akun">
                 </div>
 
-                <!-- Box Kamera Perekaman Wajah -->
-                <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
-                    <label class="block text-xs font-bold text-indigo-900">Rekam Sampel Wajah Pegawai</label>
-                    <div class="face-scanner-box h-44 flex items-center justify-center relative">
-                        <video id="regFaceVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                <!-- SELEKSI PILIHAN REKAM / UPLOAD WAJAH -->
+                <div class="border border-indigo-100 rounded-xl p-3 bg-indigo-50/50 space-y-3">
+                    <label class="block text-xs font-bold text-indigo-900 border-b border-indigo-100 pb-1">
+                        <i class="fa-solid fa-face-viewfinder text-indigo-600 mr-1"></i> Pilihan Rekam Biometrik Wajah
+                    </label>
+
+                    <!-- Option Switcher -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btnModeFile" onclick="switchFaceMode('file')" class="py-1.5 text-xs font-bold rounded-lg border border-indigo-600 bg-indigo-600 text-white transition">
+                            <i class="fa-solid fa-upload mr-1"></i> Upload Foto
+                        </button>
+                        <button type="button" id="btnModeCam" onclick="switchFaceMode('cam')" class="py-1.5 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 transition">
+                            <i class="fa-solid fa-video mr-1"></i> Kamera Live
+                        </button>
                     </div>
-                    <button type="button" onclick="startRegFaceCapture()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-2 px-3 rounded-lg shadow transition w-full">
-                        <i class="fa-solid fa-camera mr-1"></i> 1. Buka Kamera & Pindai Wajah
-                    </button>
-                    <p id="regFaceMsg" class="text-[11px] text-slate-500 font-medium">Klik tombol di atas untuk mengambil sampel vektor wajah asli pegawai.</p>
+
+                    <!-- Mode 1: Upload File Gambar Wajah -->
+                    <div id="faceModeFileSection" class="space-y-2">
+                        <label class="block text-[11px] text-slate-600">Pilih foto wajah jernih pegawai (JPG/PNG):</label>
+                        <input type="file" id="inputFaceFile" accept="image/*" onchange="processFaceImageFile(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200">
+                        <img id="previewFaceImage" class="hidden h-32 mx-auto rounded-lg object-cover border border-slate-300 mt-2">
+                    </div>
+
+                    <!-- Mode 2: Scan Kamera Langsung -->
+                    <div id="faceModeCamSection" class="hidden space-y-2 text-center">
+                        <div class="face-scanner-box h-40 flex items-center justify-center relative">
+                            <video id="regFaceVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                        </div>
+                        <button type="button" onclick="startRegFaceCapture()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-2 px-3 rounded-lg shadow transition w-full">
+                            <i class="fa-solid fa-camera mr-1"></i> Buka Kamera & Tangkap Wajah
+                        </button>
+                    </div>
+
+                    <p id="regFaceMsg" class="text-[11px] text-slate-500 font-medium text-center">Silakan unggah foto atau tangkap wajah pegawai.</p>
                 </div>
 
-                <button type="submit" id="btnSubmitAddUser" disabled class="w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl transition cursor-not-allowed">
-                    Simpan & Daftarkan Pegawai
+                <button type="submit" id="btnSubmitAddUser" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow transition">
+                    Simpan Data Pegawai
                 </button>
             </form>
         </div>
@@ -406,8 +432,9 @@
         let currentUser = null;
         let currentPos = { lat: config.lat, lng: config.lng };
         let map = null, userMarker = null, officeCircle = null, officeMarker = null;
-        let tempCapturedDescriptor = null; // Memori sementara untuk pendaftaran wajah baru
+        let tempCapturedDescriptor = null;
         let isFaceApiLoaded = false;
+        let formMode = 'tambah'; // 'tambah' atau 'edit'
 
         window.onload = async function() {
             startClock();
@@ -470,13 +497,13 @@
             }
         }
 
-        // PENCOCOKAN WAJAH SAAT LOGIN BIOMETRIK
+        // LOGIN DENGAN VERIFIKASI BIOMETRIK WAJAH
         async function startFaceLogin() {
-            if (!isFaceApiLoaded) return alert('Model AI Biometrik sedang diunduh/dimuat. Mohon tunggu sebentar.');
+            if (!isFaceApiLoaded) return alert('Model AI Biometrik sedang dimuat. Mohon tunggu.');
 
             const nonAdminUsers = users.filter(u => u.role === 'user' && u.faceDescriptor);
             if (nonAdminUsers.length === 0) {
-                alert('Belum ada data sampel biometrik wajah pegawai. Silakan Login Admin untuk meragistrasi pegawai & sampel wajahnya.');
+                alert('Belum ada data biometrik wajah pegawai terdaftar. Silakan Login Admin untuk mendaftarkan foto/wajah pegawai.');
                 return;
             }
 
@@ -491,14 +518,13 @@
                 setTimeout(async () => {
                     const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
                     if (!detection) {
-                        alert('Wajah tidak terdeteksi! Pastikan wajah Anda terlihat jelas dan terang di kamera.');
+                        alert('Wajah tidak terdeteksi! Pastikan wajah terlihat jelas di kamera.');
                         document.getElementById('scanLine').classList.add('hidden');
                         return;
                     }
 
-                    // Cocokkan Vektor Wajah Terdeteksi dengan Vektor Wajah Semua User Terdaftar
                     let bestMatchUser = null;
-                    let lowestDistance = 0.55; // Threshold Ketat Presisi
+                    let lowestDistance = 0.55;
 
                     nonAdminUsers.forEach(user => {
                         const savedDescriptor = new Float32Array(user.faceDescriptor);
@@ -513,13 +539,13 @@
                         alert(`Biometrik Wajah Sesuai ✓\nSelamat Datang, ${bestMatchUser.nama}`);
                         loginSuccess(bestMatchUser);
                     } else {
-                        alert('AKSES DITOLAK!\nWajah Anda tidak cocok dengan akun manapun yang terdaftar.');
+                        alert('AKSES DITOLAK!\nWajah Anda tidak cocok dengan akun pegawai manapun.');
                         document.getElementById('scanLine').classList.add('hidden');
                     }
                 }, 1500);
 
             } catch (err) {
-                alert('Kamera tidak terdeteksi atau izin kamera ditolak oleh browser.');
+                alert('Kamera tidak terdeteksi atau izin kamera ditolak.');
             }
         }
 
@@ -548,7 +574,7 @@
             location.reload();
         }
 
-        // GEOFENCING MAPS
+        // MAPS & GEOFENCING
         function initMap() {
             if (map) return;
 
@@ -642,7 +668,7 @@
             } catch (e) {}
         }
 
-        // VERIFIKASI WAJAH KETAT SEBELUM ABSEN MASUK/PULANG
+        // VERIFIKASI WAJAH PEGAWAI SEBELUM ABSEN
         async function verifyAndSubmitAbsen(type) {
             if (!isFaceApiLoaded) return alert('AI Pemindai Wajah sedang dimuat. Mohon tunggu.');
             
@@ -653,29 +679,28 @@
 
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             if (!detection) {
-                statusElem.innerText = "Wajah tidak terdeteksi! Tentukan posisi wajah tegak lurus ke kamera.";
+                statusElem.innerText = "Wajah tidak terdeteksi! Pastikan posisi wajah tepat menghadap kamera.";
                 statusElem.className = "text-xs text-center mt-2 text-rose-600 font-bold";
                 alert('Gagal! Wajah Anda tidak terdeteksi oleh kamera.');
                 return;
             }
 
-            // Membandingkan wajah orang di depan kamera dengan sampel wajah milik akun pengguna aktif
             if (!currentUser.faceDescriptor) {
-                alert('Akun Anda belum memiliki sampel biometrik wajah terdaftar. Hubungi Admin untuk pendaftaran ulang.');
+                alert('Akun Anda belum memiliki data sampel wajah. Hubungi Admin untuk mendaftarkan sampel wajah.');
                 return;
             }
 
             const savedDescriptor = new Float32Array(currentUser.faceDescriptor);
             const distance = faceapi.euclideanDistance(detection.descriptor, savedDescriptor);
 
-            if (distance < 0.55) { // Wajah cocok
+            if (distance < 0.55) {
                 statusElem.innerText = "Biometrik Wajah Terverifikasi Cocok ✓";
                 statusElem.className = "text-xs text-center mt-2 text-emerald-600 font-bold";
                 submitAbsen(type);
-            } else { // Wajah tidak cocok (Orang lain mencoba absen)
+            } else {
                 statusElem.innerText = "PEMINDAIAN DITOLAK! Wajah tidak cocok dengan pemegang akun ini.";
                 statusElem.className = "text-xs text-center mt-2 text-rose-600 font-bold";
-                alert(`VERIFIKASI GAGAL!\nWajah yang didepan kamera TIDAK COCOK dengan sampel wajah milik ${currentUser.nama}. Absensi dibatalkan!`);
+                alert(`VERIFIKASI GAGAL!\nWajah yang di depan kamera TIDAK COCOK dengan akun milik ${currentUser.nama}.`);
             }
         }
 
@@ -701,11 +726,11 @@
 
             rekapAbsen.unshift(record);
             localStorage.setItem('ppnpn_rekap', JSON.stringify(rekapAbsen));
-            alert(`Absensi ${type} Berhasil Ditambahkan!\nStatus: ${statusWaktu}`);
+            alert(`Absensi ${type} Berhasil!\nStatus: ${statusWaktu}`);
             renderRekapTable();
         }
 
-        // ADMIN FUNCTIONS
+        // ADMIN MANAGEMENT
         function switchAdminTab(tab) {
             document.getElementById('adminTabRekapView').classList.add('hidden');
             document.getElementById('adminTabUserView').classList.add('hidden');
@@ -740,7 +765,7 @@
                     <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${r.tipe === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${r.tipe}</span></td>
                     <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${r.status === 'Tepat Waktu' ? 'bg-indigo-100 text-indigo-700' : 'bg-rose-100 text-rose-700'}">${r.status}</span></td>
                     <td class="p-3 text-slate-600">${r.jarak}</td>
-                    <td class="p-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded font-bold"><i class="fa-solid fa-face-smile mr-1"></i> Match Biometric</span></td>
+                    <td class="p-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded font-bold"><i class="fa-solid fa-face-smile mr-1"></i> Terverifikasi</span></td>
                     <td class="p-3"><a href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank" class="text-indigo-600 hover:underline text-xs"><i class="fa-solid fa-map-pin"></i> Lihat Peta</a></td>
                 </tr>
             `).join('');
@@ -758,58 +783,89 @@
                     <td class="p-3 font-semibold text-slate-800">${u.nama}</td>
                     <td class="p-3 text-slate-600 text-xs">${u.jabatan}</td>
                     <td class="p-3">
-                        ${u.role === 'admin' ? '<span class="text-xs text-slate-400">N/A</span>' : (u.faceDescriptor ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i> Terekam (128-pt Vector)</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700">Belum Ada Wajah</span>')}
+                        ${u.role === 'admin' ? '<span class="text-xs text-slate-400">N/A</span>' : (u.faceDescriptor ? '<span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i> Terekam AI (128-pt)</span>' : '<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700">Belum Ada Wajah</span>')}
                     </td>
-                    <td class="p-3">
-                        ${u.role !== 'admin' ? `<button onclick="hapusUser('${u.username}')" class="text-xs text-rose-600 hover:text-rose-800 font-semibold"><i class="fa-solid fa-trash"></i> Hapus</button>` : '<span class="text-xs text-slate-400">System Admin</span>'}
+                    <td class="p-3 space-x-2">
+                        ${u.role !== 'admin' ? `
+                            <button onclick="openModalUser('edit', '${u.username}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <button onclick="hapusUser('${u.username}')" class="text-xs text-rose-600 hover:text-rose-800 font-semibold"><i class="fa-solid fa-trash"></i> Hapus</button>
+                        ` : '<span class="text-xs text-slate-400">System Admin</span>'}
                     </td>
                 </tr>
             `).join('');
         }
 
-        function openModalTambahUser() {
-            tempCapturedDescriptor = null;
-            document.getElementById('btnSubmitAddUser').disabled = true;
-            document.getElementById('btnSubmitAddUser').className = "w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl transition cursor-not-allowed";
-            document.getElementById('regFaceMsg').innerText = "Klik tombol di atas untuk mengambil sampel vektor wajah asli pegawai.";
-            document.getElementById('regFaceMsg').className = "text-[11px] text-slate-500 font-medium";
-            document.getElementById('modalTambahUser').classList.remove('hidden');
+        // CONTROL SWAP PADA OPSIONAL REKAM WAJAH (FILE VS KAMERA)
+        function switchFaceMode(mode) {
+            if (mode === 'file') {
+                document.getElementById('faceModeFileSection').classList.remove('hidden');
+                document.getElementById('faceModeCamSection').classList.add('hidden');
+                document.getElementById('btnModeFile').className = "py-1.5 text-xs font-bold rounded-lg border border-indigo-600 bg-indigo-600 text-white transition";
+                document.getElementById('btnModeCam').className = "py-1.5 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 transition";
+            } else {
+                document.getElementById('faceModeFileSection').classList.add('hidden');
+                document.getElementById('faceModeCamSection').classList.remove('hidden');
+                document.getElementById('btnModeCam').className = "py-1.5 text-xs font-bold rounded-lg border border-indigo-600 bg-indigo-600 text-white transition";
+                document.getElementById('btnModeFile').className = "py-1.5 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 transition";
+            }
         }
 
-        function closeModalTambahUser() {
-            document.getElementById('modalTambahUser').classList.add('hidden');
+        // OPSI 1: EKSTRAKSI VEKTOR WAJAH DARI UNGGAHAN FOTO FILE
+        async function processFaceImageFile(event) {
+            if (!isFaceApiLoaded) return alert('AI Pemindai Wajah belum selesai dimuat. Tunggu beberapa detik.');
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewImg = document.getElementById('previewFaceImage');
+            previewImg.src = URL.createObjectURL(file);
+            previewImg.classList.remove('hidden');
+
+            document.getElementById('regFaceMsg').innerText = "Mengekstrak biometrik dari foto...";
+            document.getElementById('regFaceMsg').className = "text-[11px] text-amber-600 font-bold animate-pulse text-center";
+
+            try {
+                const img = await faceapi.bufferToImage(file);
+                const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+
+                if (!detection) {
+                    alert('Gagal mendeteksi wajah pada foto! Pastikan foto menampilkan wajah dengan jelas tanpa terhalang.');
+                    document.getElementById('regFaceMsg').innerText = "Wajah tidak terdeteksi pada foto. Coba foto lain.";
+                    document.getElementById('regFaceMsg').className = "text-[11px] text-rose-600 font-bold text-center";
+                    tempCapturedDescriptor = null;
+                    return;
+                }
+
+                tempCapturedDescriptor = Array.from(detection.descriptor);
+                document.getElementById('regFaceMsg').innerText = "SAMPEL WAJAH BERHASIL DIEKSTRAK DARI FOTO ✓";
+                document.getElementById('regFaceMsg').className = "text-[11px] text-emerald-600 font-bold text-center";
+            } catch (err) {
+                alert('Gagal memproses file gambar foto.');
+            }
         }
 
-        // TANGKAP DAN EKSTRAK VEKTOR BIOMETRIK WAJAH PEGAWAI BARU
+        // OPSI 2: EKSTRAKSI VEKTOR WAJAH DARI KAMERA LANGSUNG
         async function startRegFaceCapture() {
-            if (!isFaceApiLoaded) return alert('AI Biometrik belum selesai diunduh. Tunggu beberapa detik.');
+            if (!isFaceApiLoaded) return alert('AI Biometrik belum selesai diunduh.');
 
             try {
                 const video = document.getElementById('regFaceVideo');
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 document.getElementById('regFaceMsg').innerText = "Mendeteksi wajah... Tahan posisi wajah tegak!";
-                document.getElementById('regFaceMsg').className = "text-[11px] text-amber-600 font-bold animate-pulse";
+                document.getElementById('regFaceMsg').className = "text-[11px] text-amber-600 font-bold animate-pulse text-center";
 
                 setTimeout(async () => {
                     const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
                     if (!detection) {
-                        alert('Gagal mengambil sampel! Wajah tidak terdeteksi di kamera.');
+                        alert('Gagal! Wajah tidak terdeteksi di kamera.');
                         document.getElementById('regFaceMsg').innerText = "Gagal terdeteksi. Posisikan wajah tepat di tengah kamera.";
-                        document.getElementById('regFaceMsg').className = "text-[11px] text-rose-600 font-bold";
+                        document.getElementById('regFaceMsg').className = "text-[11px] text-rose-600 font-bold text-center";
                         return;
                     }
 
-                    // Simpan Vektor Wajah ke Memori Sementata
                     tempCapturedDescriptor = Array.from(detection.descriptor);
-                    
-                    document.getElementById('regFaceMsg').innerText = "SAMPEL WAJAH BERHASIL TEREKAM & TERSIMPAN ✓";
-                    document.getElementById('regFaceMsg').className = "text-[11px] text-emerald-600 font-bold";
-
-                    // Aktifkan Tombol Simpan Form
-                    const btn = document.getElementById('btnSubmitAddUser');
-                    btn.disabled = false;
-                    btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow transition cursor-pointer";
+                    document.getElementById('regFaceMsg').innerText = "SAMPEL WAJAH BERHASIL TEREKAM DARI KAMERA ✓";
+                    document.getElementById('regFaceMsg').className = "text-[11px] text-emerald-600 font-bold text-center";
                 }, 1500);
 
             } catch (err) {
@@ -817,40 +873,97 @@
             }
         }
 
-        function handleTambahUser(e) {
+        // DIALOG MODAL PEGAWAI (TAMBAH / EDIT)
+        function openModalUser(mode, username = null) {
+            formMode = mode;
+            tempCapturedDescriptor = null;
+            document.getElementById('inputFaceFile').value = "";
+            document.getElementById('previewFaceImage').classList.add('hidden');
+            switchFaceMode('file');
+
+            if (mode === 'tambah') {
+                document.getElementById('modalUserTitle').innerText = "Registrasi Pegawai & Wajah Baru";
+                document.getElementById('editOriginalUsername').value = "";
+                document.getElementById('addUsername').value = "";
+                document.getElementById('addNama').value = "";
+                document.getElementById('addJabatan').value = "";
+                document.getElementById('addPassword').value = "";
+                document.getElementById('regFaceMsg').innerText = "Silakan unggah foto atau tangkap wajah pegawai.";
+                document.getElementById('regFaceMsg').className = "text-[11px] text-slate-500 font-medium text-center";
+            } else if (mode === 'edit') {
+                const targetUser = users.find(u => u.username === username);
+                if (!targetUser) return;
+
+                document.getElementById('modalUserTitle').innerText = `Edit Data Pegawai (${targetUser.nama})`;
+                document.getElementById('editOriginalUsername').value = targetUser.username;
+                document.getElementById('addUsername').value = targetUser.username;
+                document.getElementById('addNama').value = targetUser.nama;
+                document.getElementById('addJabatan').value = targetUser.jabatan;
+                document.getElementById('addPassword').value = targetUser.password;
+                
+                tempCapturedDescriptor = targetUser.faceDescriptor; // Gunakan descriptor lama jika tidak diganti
+                document.getElementById('regFaceMsg').innerText = targetUser.faceDescriptor 
+                    ? "Sampel wajah pegawai sudah ada. Unggah foto baru jika ingin mengganti."
+                    : "Pegawai belum memiliki data wajah. Silakan upload foto/rekam wajah.";
+                document.getElementById('regFaceMsg').className = "text-[11px] text-indigo-600 font-medium text-center";
+            }
+
+            document.getElementById('modalUserForm').classList.remove('hidden');
+        }
+
+        function closeModalUser() {
+            document.getElementById('modalUserForm').classList.add('hidden');
+        }
+
+        function handleSaveUser(e) {
             e.preventDefault();
+            const originalU = document.getElementById('editOriginalUsername').value;
             const u = document.getElementById('addUsername').value.trim();
             const n = document.getElementById('addNama').value.trim();
             const j = document.getElementById('addJabatan').value.trim();
             const p = document.getElementById('addPassword').value.trim();
 
-            if (!tempCapturedDescriptor) {
-                alert('Sampel biometrik wajah pegawai belum terekam!');
-                return;
-            }
+            if (formMode === 'tambah') {
+                if (users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
+                    alert('Username sudah digunakan! Gunakan username lain.');
+                    return;
+                }
 
-            if (users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
-                alert('Username sudah digunakan!');
-                return;
-            }
+                users.push({
+                    username: u,
+                    password: p,
+                    nama: n,
+                    jabatan: j,
+                    role: "user",
+                    faceDescriptor: tempCapturedDescriptor
+                });
+                alert(`Pegawai ${n} Berhasil Didaftarkan!`);
 
-            users.push({
-                username: u,
-                password: p,
-                nama: n,
-                jabatan: j,
-                role: "user",
-                faceDescriptor: tempCapturedDescriptor
-            });
+            } else if (formMode === 'edit') {
+                // Cek konflik username
+                if (u.toLowerCase() !== originalU.toLowerCase() && users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
+                    alert('Username pengganti sudah dipakai pengguna lain!');
+                    return;
+                }
+
+                const index = users.findIndex(x => x.username === originalU);
+                if (index !== -1) {
+                    users[index].username = u;
+                    users[index].nama = n;
+                    users[index].jabatan = j;
+                    users[index].password = p;
+                    users[index].faceDescriptor = tempCapturedDescriptor;
+                }
+                alert(`Data Pegawai ${n} Berhasil Diperbarui!`);
+            }
 
             localStorage.setItem('ppnpn_users', JSON.stringify(users));
-            alert(`Pegawai ${n} dengan sampel Biometrik Wajah asli berhasil terdaftar!`);
-            closeModalTambahUser();
+            closeModalUser();
             renderUserTable();
         }
 
         function hapusUser(username) {
-            if (confirm(`Yakin ingin menghapus pegawai "${username}"?`)) {
+            if (confirm(`Yakin ingin menghapus data pegawai "${username}"?`)) {
                 users = users.filter(x => x.username !== username);
                 localStorage.setItem('ppnpn_users', JSON.stringify(users));
                 renderUserTable();
