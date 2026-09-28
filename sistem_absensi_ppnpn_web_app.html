@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Absensi PPNPN - Geofencing & Biometrik Wajah</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js for Admin Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #map { height: 320px; width: 100%; border-radius: 0.75rem; }
+        #adminMap { height: 400px; width: 100%; border-radius: 0.75rem; }
+        .scanner-overlay {
+            background: linear-gradient(180deg, rgba(59,130,246,0) 0%, rgba(59,130,246,0.3) 50%, rgba(59,130,246,0) 100%);
+            animation: scan 2s infinite linear;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">ABSENSI PPNPN</h1>
+                    <p class="text-xs text-indigo-200">Sistem Presensi Geofencing & Biometrik</p>
+                </div>
+            </div>
+            
+            <div id="navUserArea" class="hidden flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p id="navUserName" class="text-sm font-semibold text-white"></p>
+                    <p id="navUserRole" class="text-xs text-indigo-200"></p>
+                </div>
+                <button onclick="logout()" class="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Toast Notification Box -->
+        <div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300">
+            <i id="toastIcon" data-lucide="info" class="w-5 h-5 text-blue-400"></i>
+            <span id="toastMsg" class="text-sm font-medium"></span>
+        </div>
+
+        <!-- VIEW 1: AUTHENTICATION / LOGIN PAGE -->
+        <section id="authSection" class="max-w-md mx-auto my-8 bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="user-check" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Masuk Aplikasi</h2>
+                <p class="text-sm text-slate-500 mt-1">Silakan masuk menggunakan kredensial atau Biometrik Wajah</p>
+            </div>
+
+            <!-- Login Mode Switcher Tabs -->
+            <div class="flex border-b border-slate-200 mb-6">
+                <button id="tabPasswordBtn" onclick="switchLoginMode('password')" class="flex-1 py-2 font-medium text-sm text-center border-b-2 border-indigo-600 text-indigo-600">Username & Pass</button>
+                <button id="tabFaceBtn" onclick="switchLoginMode('face')" class="flex-1 py-2 font-medium text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700">Scan Wajah</button>
+            </div>
+
+            <!-- Form Username / Password -->
+            <form id="passwordLoginForm" onsubmit="handlePasswordLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username / NIP/NIK</label>
+                    <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none" placeholder="Masukkan username">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Kata Sandi</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-indigo-200 transition text-sm">Masuk Sistem</button>
+            </form>
+
+            <!-- Mode Face Recognition Login -->
+            <div id="faceLoginForm" class="hidden space-y-4 text-center">
+                <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-200">
+                    <video id="loginFaceVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <div id="loginScanOverlay" class="hidden absolute inset-0 scanner-overlay border-2 border-indigo-400"></div>
+                    <div id="loginFacePlaceholder" class="text-slate-400 flex flex-col items-center">
+                        <i data-lucide="camera" class="w-10 h-10 mb-2"></i>
+                        <span class="text-xs">Kamera belum aktif</span>
+                    </div>
+                </div>
+                <button id="btnStartFaceAuth" onclick="startFaceLoginScan()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-lg transition text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="scan-face" class="w-5 h-5"></i>
+                    <span>Mulai Pindaian Wajah</span>
+                </button>
+            </div>
+
+            <!-- Quick Demo Accounts -->
+            <div class="mt-8 pt-6 border-t border-slate-100">
+                <p class="text-xs font-semibold text-slate-400 uppercase text-center mb-3">Login Cepat (Uji Coba Demo)</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="fillDemo('admin')" class="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-left">
+                        <span class="block text-xs font-bold text-slate-700">Admin Tata Usaha</span>
+                        <span class="block text-[10px] text-slate-400">User: admin</span>
+                    </button>
+                    <button onclick="fillDemo('user1')" class="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-left">
+                        <span class="block text-xs font-bold text-slate-700">PPNPN (Budi)</span>
+                        <span class="block text-[10px] text-slate-400">User: budi</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: DASHBOARD PPNPN (PEGAWAI) -->
+        <section id="employeeSection" class="hidden space-y-6">
+            <!-- Welcome Bar -->
+            <div class="bg-gradient-to-r from-indigo-900 to-indigo-700 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold" id="empGreeting">Selamat Datang</h2>
+                    <p class="text-indigo-200 text-sm mt-1">Sistem Absensi Berbasis Lokasi Kantor & Verifikasi Wajah</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-center">
+                    <span id="liveClock" class="text-2xl font-mono font-bold tracking-wider block">00:00:00</span>
+                    <span id="liveDate" class="text-xs text-indigo-100 block">Senin, 1 Januari 2026</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Geofencing & Camera Check-in Box -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                                <i data-lucide="map-pin" class="w-5 h-5 text-indigo-600"></i>
+                                Posisi Kehadiran & Radius Office
+                            </h3>
+                            <span id="radiusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                                Memeriksa Lokasi...
+                            </span>
+                        </div>
+
+                        <!-- Live Interactive Map -->
+                        <div id="map" class="shadow-inner border border-slate-200"></div>
+
+                        <!-- Distance Info Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
+                            <div>
+                                <span class="text-slate-400 block">Jarak Ke Kantor:</span>
+                                <span id="distVal" class="font-bold text-slate-700 text-sm">- m</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block">Maks. Radius:</span>
+                                <span id="maxRadiusVal" class="font-bold text-slate-700 text-sm">50 m</span>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <span class="text-slate-400 block">Status Toleransi:</span>
+                                <span id="toleranceBadge" class="font-bold text-emerald-600 text-sm">Tepat Waktu</span>
+                            </div>
+                        </div>
+
+                        <!-- Demo Slider Simulation Option for Testing Location -->
+                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="font-semibold text-amber-800 flex items-center gap-1">
+                                    <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Simulator Jarak Lokasi (Khusus Demo)
+                                </span>
+                                <span id="simDistLabel" class="font-mono text-amber-900 font-bold">10 meter</span>
+                            </div>
+                            <input type="range" id="simDistanceSlider" min="0" max="200" value="10" oninput="updateSimulatedDistance(this.value)" class="w-full accent-indigo-600 cursor-pointer">
+                            <p class="text-[10px] text-amber-700 mt-1">Geser slider ini untuk menguji respon geofencing radius 50 meter.</p>
+                        </div>
+                    </div>
+
+                    <!-- Face Snapshot & Absen Button -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="camera" class="w-5 h-5 text-indigo-600"></i>
+                            Verifikasi Wajah Presensi
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-200">
+                                <video id="empCamVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                                <canvas id="empCapCanvas" class="hidden"></canvas>
+                                <img id="empSnapshotPreview" class="hidden w-full h-full object-cover" alt="Snapshot Wajah">
+                                <div id="empCamOverlay" class="hidden absolute inset-0 scanner-overlay border-2 border-green-400"></div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <p class="text-xs text-slate-500 leading-relaxed">
+                                    Pastikan wajah terlihat jelas di kamera. Sistem akan mencatat koordinat lokasi dan foto snapshot saat Anda menekan tombol absensi.
+                                </p>
+                                <div class="flex flex-col gap-2">
+                                    <button id="btnAbsenMasuk" onclick="processAttendance('MASUK')" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                                        <i data-lucide="log-in" class="w-4 h-4"></i> Presensi Masuk
+                                    </button>
+                                    <button id="btnAbsenPulang" onclick="processAttendance('PULANG')" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                                        <i data-lucide="log-out" class="w-4 h-4"></i> Presensi Pulang
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Log Sidebar -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="history" class="w-5 h-5 text-indigo-600"></i>
+                        Riwayat Absensi Saya
+                    </h3>
+                    
+                    <div id="personalLogList" class="flex-grow overflow-y-auto space-y-3 max-h-[500px] pr-1">
+                        <!-- Items rendered via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: DASHBOARD ADMIN (TATA USAHA) -->
+        <section id="adminSection" class="hidden space-y-6">
+            <!-- Header Admin & Quick Stats -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Dashboard Tata Usaha</h2>
+                    <p class="text-sm text-slate-500">Rekapitulasi Presensi PPNPN & Pengaturan Sistem</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> Ekspor Rekap (CSV)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">Total PPNPN</span>
+                    <span id="statTotalPegawai" class="text-2xl font-bold text-slate-800">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">Hadir Tepat Waktu</span>
+                    <span id="statHadirOnTime" class="text-2xl font-bold text-emerald-600">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">Terlambat Absen</span>
+                    <span id="statTerlambat" class="text-2xl font-bold text-amber-600">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <span class="text-xs font-medium text-slate-400 block mb-1">Ditolak (Luar Radius)</span>
+                    <span id="statDitolak" class="text-2xl font-bold text-red-600">0</span>
+                </div>
+            </div>
+
+            <!-- Admin Navigation Tabs -->
+            <div class="flex border-b border-slate-200">
+                <button id="adminTabRekapBtn" onclick="switchAdminTab('rekap')" class="py-3 px-6 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600">Daftar Rekap Absensi</button>
+                <button id="adminTabMapBtn" onclick="switchAdminTab('map')" class="py-3 px-6 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700">Peta Lokasi Absen</button>
+                <button id="adminTabSettingsBtn" onclick="switchAdminTab('settings')" class="py-3 px-6 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700">Pengaturan Jam & Radius</button>
+            </div>
+
+            <!-- TAB 1: REKAP TABLE -->
+            <div id="adminTabRekap" class="space-y-4">
+                <!-- Filters -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-3 items-center justify-between">
+                    <div class="relative w-full md:w-72">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="adminSearchInput" oninput="renderAdminRekapTable()" placeholder="Cari nama PPNPN..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <input type="date" id="adminFilterDate" onchange="renderAdminRekapTable()" class="border border-slate-200 rounded-lg text-sm px-3 py-2 outline-none">
+                        <select id="adminFilterType" onchange="renderAdminRekapTable()" class="border border-slate-200 rounded-lg text-sm px-3 py-2 outline-none">
+                            <option value="ALL">Semua Tipe</option>
+                            <option value="MASUK">Presensi Masuk</option>
+                            <option value="PULANG">Presensi Pulang</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[11px] font-semibold">
+                                <tr>
+                                    <th class="p-4">Tanggal & Waktu</th>
+                                    <th class="p-4">PPNPN</th>
+                                    <th class="p-4">Tipe</th>
+                                    <th class="p-4">Status Waktu</th>
+                                    <th class="p-4">Jarak kantor</th>
+                                    <th class="p-4">Bukti Foto</th>
+                                    <th class="p-4">Peta Lokasi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody" class="divide-y divide-slate-100 text-slate-700">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: INTERACTIVE MAP VIEW -->
+            <div id="adminTabMap" class="hidden space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i data-lucide="map" class="w-5 h-5 text-indigo-600"></i>
+                        Sebaran Lokasi Presensi PPNPN Hari Ini
+                    </h3>
+                    <div id="adminMap" class="shadow-inner border border-slate-200"></div>
+                </div>
+            </div>
+
+            <!-- TAB 3: SETTINGS FORM -->
+            <div id="adminTabSettings" class="hidden">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 max-w-2xl">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+                        Pengaturan Lokasi Kantor & Toleransi Keterlambatan
+                    </h3>
+                    <form onsubmit="saveAdminSettings(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Latitude Kantor</label>
+                                <input type="number" step="any" id="cfgLat" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Longitude Kantor</label>
+                                <input type="number" step="any" id="cfgLng" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Max Radius (Meter)</label>
+                                <input type="number" id="cfgRadius" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="50">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Toleransi Terlambat (Menit)</label>
+                                <input type="number" id="cfgTolerance" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="15">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Jam Masuk Kantor</label>
+                                <input type="time" id="cfgWorkStart" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="08:00">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Jam Pulang Kantor</label>
+                                <input type="time" id="cfgWorkEnd" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="16:00">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow text-sm">
+                            Simpan Pengaturan
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Snapshot Preview -->
+    <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+        <div class="bg-white p-4 rounded-2xl max-w-sm w-full space-y-3 text-center">
+            <h4 class="font-bold text-slate-800 text-sm">Bukti Biometrik Wajah</h4>
+            <img id="modalImg" class="w-full rounded-xl border border-slate-200" src="" alt="Snapshot Large">
+            <button onclick="closeModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        // Default Mock Databases
+        const DEFAULT_USERS = [
+            { id: '1', username: 'admin', name: 'Admin Tata Usaha', role: 'admin', pass: 'admin123' },
+            { id: '2', username: 'budi', name: 'Budi Santoso (PPNPN)', role: 'user', pass: 'user123' },
+            { id: '3', username: 'siti', name: 'Siti Rahma (PPNPN)', role: 'user', pass: 'user123' }
+        ];
+
+        const DEFAULT_SETTINGS = {
+            officeLat: -6.175392,  // Default: Monas Jakarta
+            officeLng: 106.827153,
+            radiusMeter: 50,
+            lateToleranceMin: 15,
+            workStart: '08:00',
+            workEnd: '16:00'
+        };
+
+        // State Management
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('ppnpn_users')) || DEFAULT_USERS;
+        let settings = JSON.parse(localStorage.getItem('ppnpn_settings')) || DEFAULT_SETTINGS;
+        let attendanceLogs = JSON.parse(localStorage.getItem('ppnpn_attendance')) || [];
+
+        // Geolocation & Map Variables
+        let userCurrentPos = { lat: settings.officeLat, lng: settings.officeLng };
+        let simulatedDistOffset = 10; // meter
+        let empMap = null, empCircle = null, empMarker = null;
+        let adminMapObj = null;
+        let videoStream = null;
+
+        window.onload = function() {
+            lucide.createIcons();
+            startLiveClock();
+            initSettingsFormValues();
+            initUserPositionWatcher();
+        };
+
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                const clockEl = document.getElementById('liveClock');
+                const dateEl = document.getElementById('liveDate');
+                if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID');
+                if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }, 1000);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toastMsg');
+            const icon = document.getElementById('toastIcon');
+            
+            msg.innerText = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        // Haversine Formula: Calculate Distance between two Lat/Lng points in meters
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // metres
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return Math.round(R * c); // Distance in meters
+        }
+
+        function switchLoginMode(mode) {
+            const passForm = document.getElementById('passwordLoginForm');
+            const faceForm = document.getElementById('faceLoginForm');
+            const tabPass = document.getElementById('tabPasswordBtn');
+            const tabFace = document.getElementById('tabFaceBtn');
+
+            if (mode === 'password') {
+                passForm.classList.remove('hidden');
+                faceForm.classList.add('hidden');
+                tabPass.className = "flex-1 py-2 font-medium text-sm text-center border-b-2 border-indigo-600 text-indigo-600";
+                tabFace.className = "flex-1 py-2 font-medium text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+                stopCamera();
+            } else {
+                passForm.classList.add('hidden');
+                faceForm.classList.remove('hidden');
+                tabFace.className = "flex-1 py-2 font-medium text-sm text-center border-b-2 border-indigo-600 text-indigo-600";
+                tabPass.className = "flex-1 py-2 font-medium text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+            }
+        }
+
+        function fillDemo(type) {
+            if (type === 'admin') {
+                document.getElementById('loginUsername').value = 'admin';
+                document.getElementById('loginPassword').value = 'admin123';
+            } else {
+                document.getElementById('loginUsername').value = 'budi';
+                document.getElementById('loginPassword').value = 'user123';
+            }
+        }
+
+        function handlePasswordLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value;
+            const p = document.getElementById('loginPassword').value;
+
+            const user = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.pass === p);
+            if (user) {
+                loginSuccess(user);
+            } else {
+                showToast('Username atau Kata Sandi Salah!', 'error');
+            }
+        }
+
+        function startFaceLoginScan() {
+            const video = document.getElementById('loginFaceVideo');
+            const overlay = document.getElementById('loginScanOverlay');
+            const placeholder = document.getElementById('loginFacePlaceholder');
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    placeholder.classList.add('hidden');
+                    overlay.classList.remove('hidden');
+
+                    showToast('Memindai Biometrik Wajah...', 'info');
+
+                    // Simulate face detection match after 2.5 seconds
+                    setTimeout(() => {
+                        stopCamera();
+                        const defaultUser = users.find(x => x.role === 'user');
+                        showToast(`Wajah Terverifikasi! Selamat Datang ${defaultUser.name}`, 'success');
+                        loginSuccess(defaultUser);
+                    }, 2500);
+                })
+                .catch(err => {
+                    showToast('Kamera tidak dapat diakses', 'error');
+                });
+        }
+
+        function loginSuccess(user) {
+            currentUser = user;
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('navUserArea').classList.remove('hidden');
+            document.getElementById('navUserName').innerText = user.name;
+            document.getElementById('navUserRole').innerText = user.role === 'admin' ? 'Staf Tata Usaha (Admin)' : 'PPNPN';
+
+            if (user.role === 'admin') {
+                document.getElementById('adminSection').classList.remove('hidden');
+                renderAdminDashboard();
+            } else {
+                document.getElementById('employeeSection').classList.remove('hidden');
+                document.getElementById('empGreeting').innerText = `Selamat Datang, ${user.name}`;
+                initEmployeeDashboard();
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            stopCamera();
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('navUserArea').classList.add('hidden');
+            document.getElementById('employeeSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+
+        function initEmployeeDashboard() {
+            initEmployeeMap();
+            startEmployeeCamera();
+            renderPersonalLogs();
+        }
+
+        function initUserPositionWatcher() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    userCurrentPos = {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    };
+                    updateLocationStatus();
+                }, err => {
+                    // Fallback to office location if denied
+                    updateLocationStatus();
+                });
+            } else {
+                updateLocationStatus();
+            }
+        }
+
+        function updateSimulatedDistance(val) {
+            simulatedDistOffset = parseInt(val);
+            document.getElementById('simDistLabel').innerText = `${simulatedDistOffset} meter`;
+            updateLocationStatus();
+        }
+
+        function updateLocationStatus() {
+            // Distance calculated based on office coords + simulated offset
+            const realDist = calculateDistance(userCurrentPos.lat, userCurrentPos.lng, settings.officeLat, settings.officeLng);
+            // We use simulated distance to allow easy testing in browser
+            const currentDist = simulatedDistOffset; 
+
+            const badge = document.getElementById('radiusBadge');
+            const distVal = document.getElementById('distVal');
+            const maxRad = document.getElementById('maxRadiusVal');
+            const btnMasuk = document.getElementById('btnAbsenMasuk');
+            const btnPulang = document.getElementById('btnAbsenPulang');
+
+            if (distVal) distVal.innerText = `${currentDist} m`;
+            if (maxRad) maxRad.innerText = `${settings.radiusMeter} m`;
+
+            const isWithinRadius = currentDist <= settings.radiusMeter;
+
+            if (badge) {
+                if (isWithinRadius) {
+                    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 flex items-center gap-1";
+                    badge.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Dalam Radius (${currentDist}m)`;
+                    if(btnMasuk) btnMasuk.disabled = false;
+                    if(btnPulang) btnPulang.disabled = false;
+                } else {
+                    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1";
+                    badge.innerHTML = `<i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Di Luar Radius (${currentDist}m)`;
+                    if(btnMasuk) btnMasuk.disabled = true;
+                    if(btnPulang) btnPulang.disabled = true;
+                }
+                lucide.createIcons();
+            }
+
+            // Update Leaflet marker position
+            if (empMarker && empMap) {
+                const simLat = settings.officeLat + (simulatedDistOffset * 0.000009); // slight shift for visual demo
+                const simLng = settings.officeLng;
+                empMarker.setLatLng([simLat, simLng]);
+            }
+        }
+
+        function initEmployeeMap() {
+            if (empMap) return;
+            empMap = L.map('map').setView([settings.officeLat, settings.officeLng], 18);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(empMap);
+
+            // Office Circle Radius
+            empCircle = L.circle([settings.officeLat, settings.officeLng], {
+                color: '#4f46e5',
+                fillColor: '#6366f1',
+                fillOpacity: 0.2,
+                radius: settings.radiusMeter
+            }).addTo(empMap);
+
+            // User Location Marker
+            empMarker = L.marker([settings.officeLat, settings.officeLng]).addTo(empMap)
+                .bindPopup("Lokasi Absensi PPNPN").openPopup();
+
+            setTimeout(() => { empMap.invalidateSize(); }, 300);
+        }
+
+        function startEmployeeCamera() {
+            const video = document.getElementById('empCamVideo');
+            const overlay = document.getElementById('empCamOverlay');
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    if (overlay) overlay.classList.remove('hidden');
+                })
+                .catch(() => {
+                    showToast('Kamera tidak terdeteksi / Diizinkan', 'error');
+                });
+        }
+
+        function processAttendance(type) {
+            const currentDist = simulatedDistOffset;
+            if (currentDist > settings.radiusMeter) {
+                showToast('Absensi Ditolak! Anda berada di luar radius 50 meter kantor.', 'error');
+                return;
+            }
+
+            // Capture Snapshot Image from Camera
+            const video = document.getElementById('empCamVideo');
+            const canvas = document.getElementById('empCapCanvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 320;
+            canvas.height = 240;
+            context.drawImage(video, 0, 0, 320, 240);
+            const photoSnap = canvas.toDataURL('image/jpeg');
+
+            const now = new Date();
+            const currentTimeStr = now.toTimeString().substring(0, 5); // HH:MM
+
+            // Calculate Late status based on work start & tolerance
+            let statusWaktu = 'Tepat Waktu';
+            if (type === 'MASUK') {
+                const [startH, startM] = settings.workStart.split(':').map(Number);
+                const limitMinutes = (startH * 60) + startM + parseInt(settings.lateToleranceMin);
+                const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+
+                if (currentMinutes > limitMinutes) {
+                    statusWaktu = 'Terlambat';
+                }
+            }
+
+            const record = {
+                id: Date.now().toString(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                type: type, // 'MASUK' or 'PULANG'
+                timestamp: now.toISOString(),
+                dateStr: now.toLocaleDateString('id-ID'),
+                timeStr: now.toLocaleTimeString('id-ID'),
+                distance: currentDist,
+                statusWaktu: statusWaktu,
+                lat: settings.officeLat + (simulatedDistOffset * 0.000009),
+                lng: settings.officeLng,
+                photo: photoSnap
+            };
+
+            attendanceLogs.unshift(record);
+            localStorage.setItem('ppnpn_attendance', JSON.stringify(attendanceLogs));
+
+            showToast(`Presensi ${type} Berhasil Ditambahkan!`, 'success');
+            renderPersonalLogs();
+        }
+
+        function renderPersonalLogs() {
+            const container = document.getElementById('personalLogList');
+            if (!container) return;
+
+            const myLogs = attendanceLogs.filter(x => x.userId === currentUser.id);
+
+            if (myLogs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Belum ada riwayat absensi.</p>`;
+                return;
+            }
+
+            container.innerHTML = myLogs.map(item => `
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-3">
+                        <img src="${item.photo}" class="w-10 h-10 rounded-lg object-cover border" alt="Wajah">
+                        <div>
+                            <span class="font-bold text-slate-800 block">${item.type} - ${item.timeStr}</span>
+                            <span class="text-[10px] text-slate-400 block">${item.dateStr} (${item.distance}m)</span>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 rounded-full text-[10px] font-bold ${item.statusWaktu === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                        ${item.statusWaktu}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminDashboard() {
+            // Render Stats
+            const totalEmployees = users.filter(x => x.role === 'user').length;
+            const onTimeCount = attendanceLogs.filter(x => x.statusWaktu === 'Tepat Waktu').length;
+            const lateCount = attendanceLogs.filter(x => x.statusWaktu === 'Terlambat').length;
+
+            document.getElementById('statTotalPegawai').innerText = totalEmployees;
+            document.getElementById('statHadirOnTime').innerText = onTimeCount;
+            document.getElementById('statTerlambat').innerText = lateCount;
+
+            renderAdminRekapTable();
+            initAdminMap();
+        }
+
+        function switchAdminTab(tab) {
+            document.getElementById('adminTabRekap').classList.add('hidden');
+            document.getElementById('adminTabMap').classList.add('hidden');
+            document.getElementById('adminTabSettings').classList.add('hidden');
+
+            document.getElementById('adminTabRekapBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+            document.getElementById('adminTabMapBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+            document.getElementById('adminTabSettingsBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+
+            if (tab === 'rekap') {
+                document.getElementById('adminTabRekap').classList.remove('hidden');
+                document.getElementById('adminTabRekapBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600";
+            } else if (tab === 'map') {
+                document.getElementById('adminTabMap').classList.remove('hidden');
+                document.getElementById('adminTabMapBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600";
+                setTimeout(() => { if (adminMapObj) adminMapObj.invalidateSize(); }, 200);
+            } else {
+                document.getElementById('adminTabSettings').classList.remove('hidden');
+                document.getElementById('adminTabSettingsBtn').className = "py-3 px-6 font-semibold text-sm border-b-2 border-indigo-600 text-indigo-600";
+            }
+        }
+
+        function renderAdminRekapTable() {
+            const tbody = document.getElementById('adminTableBody');
+            const search = document.getElementById('adminSearchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('adminFilterType').value;
+
+            let filtered = attendanceLogs.filter(x => {
+                const matchName = x.userName.toLowerCase().includes(search);
+                const matchType = typeFilter === 'ALL' || x.type === typeFilter;
+                return matchName && matchType;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400 text-xs">Tidak ada data rekap presensi.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-mono text-xs">${item.dateStr} <br><span class="text-slate-400">${item.timeStr}</span></td>
+                    <td class="p-4 font-semibold text-slate-800">${item.userName}</td>
+                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-xs font-semibold">${item.type}</span></td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.statusWaktu === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                            ${item.statusWaktu}
+                        </span>
+                    </td>
+                    <td class="p-4 text-xs font-medium">${item.distance} meter</td>
+                    <td class="p-4">
+                        <button onclick="openModal('${item.photo}')" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1">
+                            <i data-lucide="image" class="w-4 h-4"></i> Lihat Wajah
+                        </button>
+                    </td>
+                    <td class="p-4">
+                        <a href="https://maps.google.com/?q=${item.lat},${item.lng}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i> Buka Map
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function initAdminMap() {
+            if (adminMapObj) return;
+            adminMapObj = L.map('adminMap').setView([settings.officeLat, settings.officeLng], 16);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(adminMapObj);
+
+            // Office Circle Radius
+            L.circle([settings.officeLat, settings.officeLng], {
+                color: '#4f46e5',
+                fillColor: '#6366f1',
+                fillOpacity: 0.15,
+                radius: settings.radiusMeter
+            }).addTo(adminMapObj);
+
+            // Populate attendance markers
+            attendanceLogs.forEach(log => {
+                L.marker([log.lat, log.lng]).addTo(adminMapObj)
+                    .bindPopup(`<b>${log.userName}</b><br>${log.type} - ${log.timeStr}<br>Jarak: ${log.distance}m`);
+            });
+        }
+
+        function initSettingsFormValues() {
+            document.getElementById('cfgLat').value = settings.officeLat;
+            document.getElementById('cfgLng').value = settings.officeLng;
+            document.getElementById('cfgRadius').value = settings.radiusMeter;
+            document.getElementById('cfgTolerance').value = settings.lateToleranceMin;
+            document.getElementById('cfgWorkStart').value = settings.workStart;
+            document.getElementById('cfgWorkEnd').value = settings.workEnd;
+        }
+
+        function saveAdminSettings(e) {
+            e.preventDefault();
+            settings.officeLat = parseFloat(document.getElementById('cfgLat').value);
+            settings.officeLng = parseFloat(document.getElementById('cfgLng').value);
+            settings.radiusMeter = parseInt(document.getElementById('cfgRadius').value);
+            settings.lateToleranceMin = parseInt(document.getElementById('cfgTolerance').value);
+            settings.workStart = document.getElementById('cfgWorkStart').value;
+            settings.workEnd = document.getElementById('cfgWorkEnd').value;
+
+            localStorage.setItem('ppnpn_settings', JSON.stringify(settings));
+            showToast('Pengaturan Jam & Radius Kantor Berhasil Disimpan!', 'success');
+        }
+
+        function exportToCSV() {
+            if (attendanceLogs.length === 0) {
+                showToast('Tidak ada data untuk diekspor', 'error');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Tanggal,Waktu,Nama PPNPN,Tipe Absen,Status Waktu,Jarak (Meter)\n";
+            attendanceLogs.forEach(row => {
+                csvContent += `"${row.dateStr}","${row.timeStr}","${row.userName}","${row.type}","${row.statusWaktu}","${row.distance}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_Absensi_PPNPN_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function openModal(imgSrc) {
+            document.getElementById('modalImg').src = imgSrc;
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
