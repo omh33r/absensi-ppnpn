@@ -3,1467 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi PPNPN - Kanim Banggai</title>
+    <title>Sistem Absensi & Kelola PPNPN - Kantor Imigrasi Kelas II Non TPI Banggai</title>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS & JS for Interactive Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        #map { height: 320px; width: 100%; border-radius: 0.75rem; }
-        #adminMap { height: 400px; width: 100%; border-radius: 0.75rem; }
-        .scanner-overlay {
-            background: linear-gradient(180deg, rgba(59,130,246,0) 0%, rgba(59,130,246,0.35) 50%, rgba(59,130,246,0) 100%);
-            animation: scan 2s infinite linear;
-        }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
 
-    <!-- Navbar Header -->
-    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 border-b border-amber-500/30">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="bg-amber-500 p-2 rounded-lg text-slate-900 shadow">
-                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+    <!-- Header Navigation -->
+    <header class="bg-indigo-950 text-white shadow-md sticky top-0 z-50 border-b border-indigo-900">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-800 p-2 rounded-xl text-amber-400">
+                    <i class="fa-solid fa-id-card-clip text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-base sm:text-lg leading-tight tracking-wide">KANIM BANGGAI</h1>
-                    <p class="text-[11px] text-amber-300">Sistem Presensi PPNPN Geofencing & Biometrik</p>
+                    <h1 class="font-bold text-base md:text-lg leading-tight tracking-wide">SISTEM KELOLA ABSENSI PPNPN</h1>
+                    <p class="text-xs text-indigo-300">Kantor Imigrasi Kelas II Non TPI Banggai</p>
                 </div>
             </div>
-            
-            <div id="navUserArea" class="hidden flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <p id="navUserName" class="text-sm font-semibold text-white"></p>
-                    <p id="navUserRole" class="text-xs text-amber-300"></p>
-                </div>
-                <button onclick="logout()" class="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition shadow">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
+            <div id="userInfoHeader" class="hidden flex items-center space-x-3">
+                <span id="userBadge" class="text-xs bg-indigo-900 text-indigo-200 px-3 py-1.5 rounded-full border border-indigo-700 font-semibold"></span>
+                <button onclick="logout()" class="text-xs bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg transition font-semibold shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        
-        <!-- Toast Notification Box -->
-        <div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 border border-slate-700">
-            <i id="toastIcon" data-lucide="info" class="w-5 h-5 text-amber-400"></i>
-            <span id="toastMsg" class="text-sm font-medium"></span>
+    <main class="max-w-7xl mx-auto p-4 md:p-6 w-full flex-grow">
+
+        <!-- NOTIFIKASI SYNC DATA TERIMA -->
+        <div id="syncBanner" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl mb-6 shadow-sm flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-xl"></i>
+                <div>
+                    <p class="font-bold text-sm">Data PPNPN Berhasil Disinkronkan!</p>
+                    <p class="text-xs text-emerald-700">Daftar pegawai dan sampel biometrik wajah terbaru telah diperbarui di perangkat ini.</p>
+                </div>
+            </div>
+            <button onclick="document.getElementById('syncBanner').classList.add('hidden')" class="text-emerald-700 hover:text-emerald-900 text-xs font-bold bg-emerald-100 px-3 py-1 rounded-lg">
+                Tutup
+            </button>
         </div>
 
-        <!-- Confirm Modal Box -->
-        <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-            <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl border border-slate-100">
-                <div class="flex items-center gap-3 text-amber-600">
-                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-                    <h4 class="font-bold text-slate-800 text-base" id="confirmTitle">Konfirmasi</h4>
-                </div>
-                <p class="text-xs text-slate-600 leading-relaxed" id="confirmMessage">Apakah Anda yakin?</p>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button id="btnConfirmCancel" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200">Batal</button>
-                    <button id="btnConfirmOk" class="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-semibold shadow hover:bg-red-700">Ya, Lanjutkan</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- VIEW 1: AUTHENTICATION / LOGIN PAGE -->
-        <section id="authSection" class="max-w-md mx-auto my-6 bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-slate-900 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md border border-amber-500/20">
-                    <i data-lucide="building-2" class="w-8 h-8"></i>
-                </div>
-                <h2 class="text-xl font-bold text-slate-900">Kantor Imigrasi Banggai</h2>
-                <p class="text-xs text-slate-500 mt-1">Sistem Absensi Kehadiran PPNPN</p>
-            </div>
-
-            <!-- Login Mode Switcher Tabs -->
-            <div class="flex border-b border-slate-200 mb-6">
-                <button id="tabPasswordBtn" onclick="switchLoginMode('password')" class="flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-indigo-600 text-indigo-600">Username & Pass</button>
-                <button id="tabFaceBtn" onclick="switchLoginMode('face')" class="flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700">Scan / Upload Wajah</button>
-            </div>
-
-            <!-- Form Username / Password -->
-            <form id="passwordLoginForm" onsubmit="handlePasswordLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username / NIP / NIK</label>
-                    <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none" placeholder="Masukkan username">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Kata Sandi</label>
-                    <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm outline-none" placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 font-semibold py-3 rounded-lg shadow-lg transition text-sm flex items-center justify-center gap-2">
-                    <i data-lucide="log-in" class="w-4 h-4"></i> Masuk Sistem
-                </button>
-            </form>
-
-            <!-- Mode Face Recognition Login -->
-            <div id="faceLoginForm" class="hidden space-y-4 text-center">
-                <div class="flex justify-center bg-slate-100 p-1 rounded-lg text-xs mb-3">
-                    <button type="button" id="loginModeCamBtn" onclick="setLoginFaceSource('cam')" class="flex-1 py-1.5 font-semibold rounded-md bg-white text-indigo-600 shadow-sm">Gunakan Kamera</button>
-                    <button type="button" id="loginModeFileBtn" onclick="setLoginFaceSource('file')" class="flex-1 py-1.5 font-semibold rounded-md text-slate-600">Unggah Foto Wajah</button>
-                </div>
-
-                <div class="text-left">
-                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Pilih Akun Pegawai</label>
-                    <select id="loginFaceUserSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none">
-                        <!-- Populated via JS -->
-                    </select>
-                </div>
-
-                <!-- Camera Container -->
-                <div id="loginCamContainer" class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-200">
-                    <video id="loginFaceVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                    <div id="loginScanOverlay" class="hidden absolute inset-0 scanner-overlay border-2 border-indigo-400"></div>
-                    <div id="loginFacePlaceholder" class="text-slate-400 flex flex-col items-center">
-                        <i data-lucide="camera" class="w-10 h-10 mb-2"></i>
-                        <span class="text-xs">Kamera belum aktif</span>
+        <!-- ================= LOGIN / PILIH PEGAWAI PPNPN ================= -->
+        <div id="loginSection" class="max-w-md mx-auto my-6">
+            <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-4 bg-indigo-100/70 rounded-full mb-3 text-indigo-900">
+                        <i class="fa-solid fa-users text-3xl"></i>
                     </div>
+                    <h2 class="text-2xl font-bold text-slate-800">Absensi PPNPN</h2>
+                    <p class="text-xs text-slate-500 mt-1">Pilih nama Anda untuk melakukan Presensi Biometrik Wajah</p>
                 </div>
 
-                <!-- File Upload Container -->
-                <div id="loginFileContainer" class="hidden border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-indigo-500 transition">
-                    <input type="file" id="loginFaceFileInput" accept="image/*" onchange="previewLoginFaceFile(event)" class="hidden">
-                    <div id="loginFilePlaceholder" onclick="document.getElementById('loginFaceFileInput').click()" class="cursor-pointer space-y-2">
-                        <i data-lucide="upload-cloud" class="w-10 h-10 text-indigo-500 mx-auto"></i>
-                        <p class="text-xs font-medium text-slate-600">Klik di sini untuk mengunggah foto wajah</p>
-                        <p class="text-[10px] text-slate-400">Format: JPG, PNG (Maks 5MB)</p>
-                    </div>
-                    <img id="loginFilePreview" class="hidden max-h-40 mx-auto rounded-lg object-cover border" alt="Preview Wajah">
-                </div>
-
-                <button id="btnStartFaceAuth" onclick="executeFaceLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-lg transition text-sm flex items-center justify-center gap-2">
-                    <i data-lucide="scan-face" class="w-5 h-5"></i>
-                    <span id="loginFaceBtnText">Verifikasi & Masuk</span>
-                </button>
-            </div>
-
-            <!-- Quick Demo Accounts -->
-            <div class="mt-8 pt-6 border-t border-slate-100">
-                <p class="text-xs font-semibold text-slate-400 uppercase text-center mb-3">Login Cepat Demo (Kanim Banggai)</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="fillDemo('admin')" class="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-left transition">
-                        <span class="block text-xs font-bold text-slate-700">Admin Tata Usaha</span>
-                        <span class="block text-[10px] text-slate-400">User: admin</span>
-                    </button>
-                    <button onclick="fillDemo('user1')" class="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-left transition">
-                        <span class="block text-xs font-bold text-slate-700">PPNPN (Budi)</span>
-                        <span class="block text-[10px] text-slate-400">User: budi</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- VIEW 2: DASHBOARD PPNPN (PEGAWAI) -->
-        <section id="employeeSection" class="hidden space-y-6">
-            <!-- Welcome Bar -->
-            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-amber-500/20">
-                <div>
-                    <h2 class="text-xl sm:text-2xl font-bold" id="empGreeting">Selamat Datang</h2>
-                    <p class="text-amber-300 text-xs sm:text-sm mt-1">Kantor Imigrasi Kelas II Non TPI Banggai</p>
-                </div>
-                <div class="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-center w-full md:w-auto">
-                    <span id="liveClock" class="text-xl sm:text-2xl font-mono font-bold tracking-wider block">00:00:00</span>
-                    <span id="liveDate" class="text-xs text-slate-200 block">Senin, 1 Januari 2026</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Geofencing & Camera Check-in Box -->
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
-                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm sm:text-base">
-                                <i data-lucide="map-pin" class="w-5 h-5 text-indigo-600"></i>
-                                Posisi Kehadiran & Radius Office Kanim Banggai
-                            </h3>
-                            <span id="radiusBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                                Memeriksa Lokasi...
-                            </span>
-                        </div>
-
-                        <!-- Live Interactive Map -->
-                        <div id="map" class="shadow-inner border border-slate-200"></div>
-
-                        <!-- Distance Info Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl text-xs">
-                            <div>
-                                <span class="text-slate-400 block">Jarak Ke Kantor:</span>
-                                <span id="distVal" class="font-bold text-slate-700 text-sm">- m</span>
-                            </div>
-                            <div>
-                                <span class="text-slate-400 block">Maks. Radius:</span>
-                                <span id="maxRadiusVal" class="font-bold text-slate-700 text-sm">50 m</span>
-                            </div>
-                            <div class="col-span-2 sm:col-span-1">
-                                <span class="text-slate-400 block">Status Toleransi:</span>
-                                <span id="toleranceBadge" class="font-bold text-emerald-600 text-sm">Sesuai Jadwal</span>
-                            </div>
-                        </div>
-
-                        <!-- Simulator Distance Option -->
-                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
-                            <div class="flex justify-between items-center text-xs mb-1">
-                                <span class="font-semibold text-amber-800 flex items-center gap-1">
-                                    <i data-lucide="sliders" class="w-3.5 h-3.5"></i> Simulator Jarak Geofencing (Pengujian)
-                                </span>
-                                <span id="simDistLabel" class="font-mono text-amber-900 font-bold">10 meter</span>
-                            </div>
-                            <input type="range" id="simDistanceSlider" min="0" max="200" value="10" oninput="updateSimulatedDistance(this.value)" class="w-full accent-indigo-600 cursor-pointer">
-                            <p class="text-[10px] text-amber-700 mt-1">Ubah slider untuk menguji kondisi di dalam atau di luar radius kantor.</p>
-                        </div>
-                    </div>
-
-                    <!-- Face Snapshot & Absen Button -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm sm:text-base">
-                                <i data-lucide="camera" class="w-5 h-5 text-indigo-600"></i>
-                                Verifikasi Biometrik Wajah
-                            </h3>
-
-                            <div class="flex bg-slate-100 p-1 rounded-lg text-xs">
-                                <button type="button" id="empModeCamBtn" onclick="setEmpFaceSource('cam')" class="px-2.5 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm">Kamera</button>
-                                <button type="button" id="empModeFileBtn" onclick="setEmpFaceSource('file')" class="px-2.5 py-1 font-semibold rounded-md text-slate-600">Unggah Foto</button>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                            <div id="empCamContainer" class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-200">
-                                <video id="empCamVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                                <canvas id="empCapCanvas" class="hidden"></canvas>
-                                <div id="empCamOverlay" class="hidden absolute inset-0 scanner-overlay border-2 border-green-400"></div>
-                            </div>
-
-                            <div id="empFileContainer" class="hidden border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-indigo-500 transition aspect-video flex flex-col justify-center items-center">
-                                <input type="file" id="empFaceFileInput" accept="image/*" onchange="previewEmpFaceFile(event)" class="hidden">
-                                <div id="empFilePlaceholder" onclick="document.getElementById('empFaceFileInput').click()" class="cursor-pointer space-y-2">
-                                    <i data-lucide="image-plus" class="w-8 h-8 text-indigo-500 mx-auto"></i>
-                                    <p class="text-xs font-medium text-slate-600">Pilih Foto Wajah</p>
-                                </div>
-                                <img id="empFilePreview" class="hidden w-full h-full object-cover rounded-lg border" alt="Snapshot Upload">
-                            </div>
-
-                            <div class="space-y-3">
-                                <p class="text-xs text-slate-500 leading-relaxed">
-                                    Pastikan wajah terlihat jelas. Pilih metode rekaman melalui Kamera Langsung atau Unggah Foto Wajah sebelum menekan tombol presensi.
-                                </p>
-                                <div class="flex flex-col gap-2">
-                                    <button id="btnAbsenMasuk" onclick="processAttendance('MASUK')" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
-                                        <i data-lucide="log-in" class="w-4 h-4"></i> Presensi Masuk
-                                    </button>
-                                    <button id="btnAbsenPulang" onclick="processAttendance('PULANG')" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
-                                        <i data-lucide="log-out" class="w-4 h-4"></i> Presensi Pulang
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Personal Log Sidebar -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
-                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
-                        <i data-lucide="history" class="w-5 h-5 text-indigo-600"></i>
-                        Riwayat Presensi Saya
-                    </h3>
-                    
-                    <div id="personalLogList" class="flex-grow overflow-y-auto space-y-3 max-h-[500px] pr-1">
-                        <!-- Items rendered via JS -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- VIEW 3: DASHBOARD ADMIN (TATA USAHA) -->
-        <section id="adminSection" class="hidden space-y-6">
-            <!-- Header Admin & Quick Stats -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Dashboard Subbagian Tata Usaha</h2>
-                    <p class="text-xs sm:text-sm text-slate-500">Kelola Presensi, Data PPNPN & Pengaturan Geofencing Kanim Banggai</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> Ekspor Rekap (CSV)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stat Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <span class="text-xs font-medium text-slate-400 block mb-1">Total PPNPN</span>
-                    <span id="statTotalPegawai" class="text-2xl font-bold text-slate-800">0</span>
-                </div>
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <span class="text-xs font-medium text-slate-400 block mb-1">Hadir Tepat Waktu</span>
-                    <span id="statHadirOnTime" class="text-2xl font-bold text-emerald-600">0</span>
-                </div>
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <span class="text-xs font-medium text-slate-400 block mb-1">Terlambat Absen</span>
-                    <span id="statTerlambat" class="text-2xl font-bold text-amber-600">0</span>
-                </div>
-                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-100">
-                    <span class="text-xs font-medium text-slate-400 block mb-1">Total Record Absen</span>
-                    <span id="statTotalRecord" class="text-2xl font-bold text-indigo-600">0</span>
-                </div>
-            </div>
-
-            <!-- Admin Navigation Tabs -->
-            <div class="flex border-b border-slate-200 overflow-x-auto">
-                <button id="adminTabRekapBtn" onclick="switchAdminTab('rekap')" class="py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap">Daftar Rekap Absensi</button>
-                <button id="adminTabPegawaiBtn" onclick="switchAdminTab('pegawai')" class="py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">Kelola Data PPNPN</button>
-                <button id="adminTabMapBtn" onclick="switchAdminTab('map')" class="py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">Peta Sebaran Lokasi</button>
-                <button id="adminTabSettingsBtn" onclick="switchAdminTab('settings')" class="py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap">Pengaturan Jam & Radius</button>
-            </div>
-
-            <!-- TAB 1: REKAP TABLE -->
-            <div id="adminTabRekap" class="space-y-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-3 items-center justify-between">
-                    <div class="relative w-full md:w-72">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
-                        <input type="text" id="adminSearchInput" oninput="renderAdminRekapTable()" placeholder="Cari nama PPNPN..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500">
-                    </div>
-                    <div class="flex gap-2 w-full md:w-auto">
-                        <select id="adminFilterType" onchange="renderAdminRekapTable()" class="border border-slate-200 rounded-lg text-sm px-3 py-2 outline-none w-full md:w-auto">
-                            <option value="ALL">Semua Tipe Presensi</option>
-                            <option value="MASUK">Presensi Masuk</option>
-                            <option value="PULANG">Presensi Pulang</option>
+                <!-- Dropdown Pilih Pegawai PPNPN -->
+                <div id="pegawaiSelectContainer" class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Pegawai PPNPN</label>
+                        <select id="selectNamaPegawai" class="w-full pl-3 pr-8 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-600 outline-none transition text-sm bg-white font-semibold text-slate-800">
+                            <!-- Injected JS -->
                         </select>
                     </div>
+                    <p id="pegawaiCountMsg" class="text-[11px] text-slate-500 text-center font-medium"></p>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[11px] font-semibold">
-                                <tr>
-                                    <th class="p-4">Tanggal & Waktu</th>
-                                    <th class="p-4">PPNPN</th>
-                                    <th class="p-4">Tipe</th>
-                                    <th class="p-4">Status Keterlambatan</th>
-                                    <th class="p-4">Jarak Kanim</th>
-                                    <th class="p-4">Bukti Foto</th>
-                                    <th class="p-4">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminTableBody" class="divide-y divide-slate-100 text-slate-700">
-                                <!-- Rendered via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: MANAJEMEN PEGAWAI PPNPN (CRUD & SAVE BIOMETRIK WAJAH) -->
-            <div id="adminTabPegawai" class="hidden space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                    <div>
-                        <h3 class="font-bold text-slate-800 text-sm sm:text-base">Data Master Pegawai PPNPN</h3>
-                        <p class="text-xs text-slate-500">Tambah, Edit, Hapus, dan Save Wajah Biometrik PPNPN Kantor Imigrasi Banggai</p>
-                    </div>
-                    <button onclick="openAddUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah PPNPN Baru
+                <!-- Toggle Form Admin vs Pegawai -->
+                <div class="pt-4 border-t border-slate-200">
+                    <button onclick="toggleAdminLoginForm()" class="w-full text-center text-xs font-bold text-indigo-600 hover:underline flex items-center justify-center">
+                        <i class="fa-solid fa-user-shield mr-1.5"></i> <span id="adminToggleText">Login Administrator / TU</span>
                     </button>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[11px] font-semibold">
-                                <tr>
-                                    <th class="p-4">Foto Wajah</th>
-                                    <th class="p-4">Nama Lengkap</th>
-                                    <th class="p-4">Username</th>
-                                    <th class="p-4">Jabatan / Unit</th>
-                                    <th class="p-4">Status Biometrik</th>
-                                    <th class="p-4">Role Hak Akses</th>
-                                    <th class="p-4 text-center">Aksi / Edit Data</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminPegawaiTableBody" class="divide-y divide-slate-100 text-slate-700">
-                                <!-- Rendered via JS -->
-                            </tbody>
-                        </table>
+                <!-- Form Login Admin (Hidden Bawaan) -->
+                <form id="formAdminLogin" onsubmit="handleAdminLogin(event)" class="hidden space-y-4 mt-4 pt-4 border-t border-slate-200">
+                    <p class="text-xs font-bold text-slate-700 flex items-center"><i class="fa-solid fa-lock text-indigo-600 mr-1.5"></i> Form Akses Admin Pengelola</p>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Username Admin</label>
+                        <input type="text" id="loginUsername" required class="w-full px-3 py-2 rounded-xl border text-sm" placeholder="Username admin">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full px-3 py-2 rounded-xl border text-sm" placeholder="Password admin">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-900 hover:bg-indigo-950 text-white font-bold py-2.5 rounded-xl shadow text-xs">
+                        Masuk Dashboard Admin
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= DASHBOARD ADMIN & MANAGEMENT ================= -->
+        <div id="adminDashboard" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Subbag Tata Usaha</span>
+                    <h2 class="text-2xl font-bold text-slate-800">Panel Kelola & Absensi PPNPN</h2>
+                    <p class="text-sm text-slate-500">Manajemen Biometrik Wajah, Geofencing, dan Rekapitulasi Presensi</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="copyShareableLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center">
+                        <i class="fa-solid fa-share-nodes mr-2"></i> Bagikan Link ke Pegawai (Sync Data)
+                    </button>
+                    <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center">
+                        <i class="fa-solid fa-file-excel mr-2"></i> Ekspor Rekap (CSV)
+                    </button>
                 </div>
             </div>
 
-            <!-- TAB 3: INTERACTIVE MAP VIEW -->
-            <div id="adminTabMap" class="hidden space-y-4">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
-                        <i data-lucide="map" class="w-5 h-5 text-indigo-600"></i>
-                        Sebaran Lokasi Presensi PPNPN di Kanim Banggai
-                    </h3>
-                    <div id="adminMap" class="shadow-inner border border-slate-200"></div>
-                </div>
+            <!-- Tab Navigation Admin -->
+            <div class="flex flex-wrap border-b border-slate-200 space-x-2 md:space-x-4">
+                <button id="tabAdminUser" onclick="switchAdminTab('user')" class="py-2.5 px-4 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600">
+                    <i class="fa-solid fa-users-gear mr-1.5"></i> Kelola Data PPNPN
+                </button>
             </div>
 
-            <!-- TAB 4: SETTINGS FORM -->
-            <div id="adminTabSettings" class="hidden">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 max-w-2xl">
-                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
-                        <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
-                        Pengaturan Lokasi Kanim & Toleransi Keterlambatan
-                    </h3>
-                    <form onsubmit="saveAdminSettings(event)" class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Latitude Kantor Imigrasi</label>
-                                <input type="number" step="any" id="cfgLat" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Longitude Kantor Imigrasi</label>
-                                <input type="number" step="any" id="cfgLng" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
-                            </div>
-                        </div>
+            <!-- TAB 1: KELOLA DATA PPNPN -->
+            <div id="adminTabUserView" class="space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h3 class="text-base font-bold text-slate-800">Daftar Pegawai PPNPN Terdaftar</h3>
+                    <button onclick="openModalUser('tambah')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center">
+                        <i class="fa-solid fa-user-plus mr-2"></i> + Registrasi PPNPN Baru
+                    </button>
+                </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Max Radius Presensi (Meter)</label>
-                                <input type="number" id="cfgRadius" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="50">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Toleransi Terlambat (Menit)</label>
-                                <input type="number" id="cfgTolerance" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="15">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Jam Masuk Kantor</label>
-                                <input type="time" id="cfgWorkStart" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="08:00">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Jam Pulang Kantor</label>
-                                <input type="time" id="cfgWorkEnd" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" value="16:00">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow text-sm">
-                            Simpan Pengaturan
-                        </button>
-                    </form>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="p-3.5">Foto Wajah</th>
+                                <th class="p-3.5">Username</th>
+                                <th class="p-3.5">Nama Lengkap</th>
+                                <th class="p-3.5">Jabatan / Tugas</th>
+                                <th class="p-3.5">Status Wajah</th>
+                                <th class="p-3.5 text-center">Aksi (Edit / Hapus)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableUserBody" class="divide-y divide-slate-100">
+                            <!-- Injected JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </section>
+        </div>
 
     </main>
 
-    <!-- Modal Edit / Tambah User PPNPN dengan Capture/Save Biometrik Wajah -->
-    <div id="userModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white p-6 rounded-2xl max-w-lg w-full space-y-4 shadow-2xl border border-slate-100 my-8">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h4 id="userModalTitle" class="font-bold text-slate-800 text-base">Tambah Data PPNPN & Rekam Wajah</h4>
-                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+    <!-- MODAL EDIT / TAMBAH DATA PPNPN & REKAM WAJAH -->
+    <div id="modalUserForm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border space-y-4 my-6">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="modalUserTitle" class="font-bold text-lg text-slate-800">Registrasi Pegawai & Sampel Wajah</h3>
+                <button onclick="closeModalUser()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <form onsubmit="saveUserForm(event)" class="space-y-3">
-                <input type="hidden" id="editUserId">
+            
+            <form onsubmit="handleSaveUser(event)" class="space-y-4 text-sm">
+                <input type="hidden" id="editOriginalUsername">
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Nama Lengkap</label>
-                        <input type="text" id="editName" required class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" placeholder="Contoh: Budi Santoso">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                        <input type="text" id="addUsername" required class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-600" placeholder="Contoh: ahmad">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username Login</label>
-                        <input type="text" id="editUsername" required class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" placeholder="username">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Jabatan / Tugas</label>
-                        <input type="text" id="editJabatan" required class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" placeholder="Contoh: Petugas Keamanan">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Kata Sandi</label>
-                        <input type="password" id="editPass" required class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" placeholder="••••••••">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="addPassword" required class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-600" placeholder="Password">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Role Peran</label>
-                    <select id="editRole" class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-500">
-                        <option value="user">PPNPN (Pegawai)</option>
-                        <option value="admin">Admin Subbagian TU</option>
-                    </select>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap PPNPN</label>
+                    <input type="text" id="addNama" required class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-600" placeholder="Contoh: Ahmad Subagja">
                 </div>
 
-                <!-- SECTION REKAM / SAVE WAJAH BIOMETRIK PEGAWAI -->
-                <div class="border-t border-slate-200 pt-3 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="block text-xs font-bold uppercase text-slate-700 flex items-center gap-1">
-                            <i data-lucide="scan-face" class="w-4 h-4 text-indigo-600"></i> Rekam Foto Biometrik Wajah
-                        </label>
-                        <span id="editFaceStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                            Belum Ada Foto
-                        </span>
-                    </div>
-
-                    <!-- Options mode rekam modal: Webcam vs Upload -->
-                    <div class="flex bg-slate-100 p-1 rounded-lg text-xs">
-                        <button type="button" id="modalCamSourceBtn" onclick="setModalFaceSource('cam')" class="flex-1 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm">Ambil Kamera Live</button>
-                        <button type="button" id="modalFileSourceBtn" onclick="setModalFaceSource('file')" class="flex-1 py-1 font-semibold rounded-md text-slate-600">Unggah File Foto</button>
-                    </div>
-
-                    <!-- Webcam Container -->
-                    <div id="modalCamContainer" class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-200">
-                        <video id="modalFaceVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                        <canvas id="modalCapCanvas" class="hidden"></canvas>
-                        <button type="button" onclick="captureModalWebcamFace()" class="absolute bottom-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
-                            <i data-lucide="camera" class="w-3.5 h-3.5"></i> Tangkap Wajah
-                        </button>
-                    </div>
-
-                    <!-- File Upload Container -->
-                    <div id="modalFileContainer" class="hidden border-2 border-dashed border-slate-300 rounded-xl p-3 text-center hover:border-indigo-500 transition">
-                        <input type="file" id="modalFaceFileInput" accept="image/*" onchange="previewModalFaceFile(event)" class="hidden">
-                        <div onclick="document.getElementById('modalFaceFileInput').click()" class="cursor-pointer space-y-1">
-                            <i data-lucide="upload-cloud" class="w-6 h-6 text-indigo-500 mx-auto"></i>
-                            <p class="text-xs font-medium text-slate-600">Klik untuk unggah foto wajah pegawai</p>
-                        </div>
-                    </div>
-
-                    <!-- Preview Saved Image -->
-                    <div id="modalFacePreviewContainer" class="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                        <img id="modalFacePreviewImg" class="w-12 h-12 rounded-lg object-cover border border-slate-300 bg-slate-200" src="https://placehold.co/100x100/e2e8f0/64748b?text=Wajah" alt="Preview Biometrik">
-                        <div class="text-[11px] text-slate-500">
-                            <span class="font-bold text-slate-700 block" id="modalFacePreviewText">Wajah Siap Disimpan</span>
-                            <span class="text-[10px]">Foto ini akan digunakan untuk autentikasi presensi PPNPN.</span>
-                        </div>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Jabatan / Tugas Kantor</label>
+                    <input type="text" id="addJabatan" required class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-600" placeholder="Contoh: PPNPN - Satpam / Driver">
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow hover:bg-indigo-700 flex items-center gap-1">
-                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Data Pegawai
-                    </button>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModalUser()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-100">Batal</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md transition">Simpan Data Pegawai</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Snapshot Preview -->
-    <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-        <div class="bg-white p-4 rounded-2xl max-w-sm w-full space-y-3 text-center">
-            <h4 class="font-bold text-slate-800 text-sm">Bukti Foto Biometrik Wajah</h4>
-            <img id="modalImg" class="w-full rounded-xl border border-slate-200 max-h-80 object-cover" src="" alt="Snapshot Large">
-            <button onclick="closeModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg">Tutup</button>
-        </div>
-    </div>
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-4 text-center border-t border-slate-800">
+        <p>&copy; 2026 Kantor Imigrasi Kelas II Non TPI Banggai - Subbagian Tata Usaha</p>
+    </footer>
 
     <script>
-        // Default Initial Database Kanim Banggai
         const DEFAULT_USERS = [
-            { id: '1', username: 'admin', name: 'Admin Tata Usaha', role: 'admin', pass: 'admin123', jabatan: 'Staf Subbagian TU', faceData: null },
-            { id: '2', username: 'budi', name: 'Budi Santoso', role: 'user', pass: 'user123', jabatan: 'Petugas Keamanan (Satpam)', faceData: 'https://placehold.co/150x150/0f172a/f59e0b?text=Budi+Wajah' },
-            { id: '3', username: 'siti', name: 'Siti Rahma', role: 'user', pass: 'user123', jabatan: 'Pramubakti & Kebersihan', faceData: null },
-            { id: '4', username: 'ahmad', name: 'Ahmad Dahlan', role: 'user', pass: 'user123', jabatan: 'Pengemudi Operasional', faceData: null }
+            { username: "admin", password: "admin123", nama: "Admin Tata Usaha", jabatan: "Pengelola Sistem PPNPN", role: "admin", faceImage: null },
+            { username: "ahmad", password: "123", nama: "Ahmad Subagja", jabatan: "PPNPN - Pramubakti TU", role: "user", faceImage: null }
         ];
 
-        // Office Coordinates Default: Kanim Kelas II Non TPI Banggai (Luwuk)
-        const DEFAULT_SETTINGS = {
-            officeLat: -0.948301,  
-            officeLng: 122.791552,
-            radiusMeter: 50,
-            lateToleranceMin: 15,
-            workStart: '08:00',
-            workEnd: '16:00'
-        };
-
-        // Global Application State
-        let currentUser = null;
-        let users = JSON.parse(localStorage.getItem('kanim_ppnpn_users')) || DEFAULT_USERS;
-        let settings = JSON.parse(localStorage.getItem('kanim_ppnpn_settings')) || DEFAULT_SETTINGS;
-        let attendanceLogs = JSON.parse(localStorage.getItem('kanim_ppnpn_attendance')) || [];
-
-        // Sources State ('cam' or 'file')
-        let loginFaceSource = 'cam'; 
-        let empFaceSource = 'cam';
-        let modalFaceSource = 'cam';
-
-        // Temporary Base64 Storage for captured/uploaded photos
-        let loginUploadedPhotoBase64 = null;
-        let empUploadedPhotoBase64 = null;
-        let modalCapturedFaceBase64 = null;
-
-        // Map and Stream Holders
-        let simulatedDistOffset = 10;
-        let userCurrentPos = { lat: settings.officeLat, lng: settings.officeLng };
-        let empMap = null, empCircle = null, empMarker = null;
-        let adminMapObj = null;
-        let activeVideoStream = null;
-
-        // Confirm Modal callback handler
-        let confirmActionHandler = null;
+        let users = [];
 
         window.onload = function() {
-            lucide.createIcons();
-            startLiveClock();
-            initSettingsFormValues();
-            initUserPositionWatcher();
-            populateLoginUserDropdown();
-            setupConfirmModalButtons();
+            // 1. Cek Apakah Link Membawa Data Sync Hash (#data=...)
+            checkUrlSyncData();
+            // 2. Render Dropdown Pegawai
+            renderPegawaiDropdown();
+            renderUserTable();
         };
 
-        function startLiveClock() {
-            setInterval(() => {
-                const now = new Date();
-                const clockEl = document.getElementById('liveClock');
-                const dateEl = document.getElementById('liveDate');
-                if (clockEl) clockEl.innerText = now.toLocaleTimeString('id-ID');
-                if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            }, 1000);
-        }
-
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            const msg = document.getElementById('toastMsg');
-            const icon = document.getElementById('toastIcon');
-            
-            msg.innerText = message;
-            toast.classList.remove('hidden');
-            
-            if (type === 'error') {
-                icon.setAttribute('data-lucide', 'alert-circle');
-                icon.className = "w-5 h-5 text-red-400";
-            } else if (type === 'success') {
-                icon.setAttribute('data-lucide', 'check-circle-2');
-                icon.className = "w-5 h-5 text-emerald-400";
-            } else {
-                icon.setAttribute('data-lucide', 'info');
-                icon.className = "w-5 h-5 text-amber-400";
-            }
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3500);
-        }
-
-        function showConfirm(title, message, onConfirm) {
-            document.getElementById('confirmTitle').innerText = title;
-            document.getElementById('confirmMessage').innerText = message;
-            confirmActionHandler = onConfirm;
-            document.getElementById('confirmModal').classList.remove('hidden');
-        }
-
-        function setupConfirmModalButtons() {
-            document.getElementById('btnConfirmCancel').onclick = () => {
-                document.getElementById('confirmModal').classList.add('hidden');
-                confirmActionHandler = null;
-            };
-            document.getElementById('btnConfirmOk').onclick = () => {
-                if (confirmActionHandler) confirmActionHandler();
-                document.getElementById('confirmModal').classList.add('hidden');
-                confirmActionHandler = null;
-            };
-        }
-
-        function populateLoginUserDropdown() {
-            const sel = document.getElementById('loginFaceUserSelect');
-            if (!sel) return;
-            sel.innerHTML = users.map(u => `<option value="${u.id}">${u.name} (${u.jabatan || u.role})</option>`).join('');
-        }
-
-        function switchLoginMode(mode) {
-            const passForm = document.getElementById('passwordLoginForm');
-            const faceForm = document.getElementById('faceLoginForm');
-            const tabPass = document.getElementById('tabPasswordBtn');
-            const tabFace = document.getElementById('tabFaceBtn');
-
-            if (mode === 'password') {
-                passForm.classList.remove('hidden');
-                faceForm.classList.add('hidden');
-                tabPass.className = "flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-indigo-600 text-indigo-600";
-                tabFace.className = "flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700";
-                stopCamera();
-            } else {
-                passForm.classList.add('hidden');
-                faceForm.classList.remove('hidden');
-                tabFace.className = "flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-indigo-600 text-indigo-600";
-                tabPass.className = "flex-1 py-2 font-medium text-xs sm:text-sm text-center border-b-2 border-transparent text-slate-500 hover:text-slate-700";
-                if (loginFaceSource === 'cam') startLoginCamera();
-            }
-        }
-
-        function setLoginFaceSource(src) {
-            loginFaceSource = src;
-            const camBtn = document.getElementById('loginModeCamBtn');
-            const fileBtn = document.getElementById('loginModeFileBtn');
-            const camCont = document.getElementById('loginCamContainer');
-            const fileCont = document.getElementById('loginFileContainer');
-
-            if (src === 'cam') {
-                camBtn.className = "flex-1 py-1.5 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                fileBtn.className = "flex-1 py-1.5 font-semibold rounded-md text-slate-600";
-                camCont.classList.remove('hidden');
-                fileCont.classList.add('hidden');
-                startLoginCamera();
-            } else {
-                fileBtn.className = "flex-1 py-1.5 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                camBtn.className = "flex-1 py-1.5 font-semibold rounded-md text-slate-600";
-                fileCont.classList.remove('hidden');
-                camCont.classList.add('hidden');
-                stopCamera();
-            }
-        }
-
-        function startLoginCamera() {
-            stopCamera();
-            const video = document.getElementById('loginFaceVideo');
-            const overlay = document.getElementById('loginScanOverlay');
-            const placeholder = document.getElementById('loginFacePlaceholder');
-
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    activeVideoStream = stream;
-                    video.srcObject = stream;
-                    if (placeholder) placeholder.classList.add('hidden');
-                    if (overlay) overlay.classList.remove('hidden');
-                })
-                .catch(() => {
-                    showToast('Kamera tidak dapat diakses. Silakan gunakan tab Unggah Foto Wajah', 'info');
-                });
-        }
-
-        function previewLoginFaceFile(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    loginUploadedPhotoBase64 = evt.target.result;
-                    const img = document.getElementById('loginFilePreview');
-                    const ph = document.getElementById('loginFilePlaceholder');
-                    img.src = loginUploadedPhotoBase64;
-                    img.classList.remove('hidden');
-                    ph.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function executeFaceLogin() {
-            const selectedUserId = document.getElementById('loginFaceUserSelect').value;
-            const user = users.find(u => u.id === selectedUserId);
-
-            if (!user) {
-                showToast('Pilih pegawai terlebih dahulu', 'error');
-                return;
-            }
-
-            if (!user.faceData) {
-                showToast(`Wajah ${user.name} belum terdaftar. Admin harus menyimpan biometrik terlebih dahulu pada Kelola PPNPN.`, 'error');
-                return;
-            }
-
-            if (loginFaceSource === 'cam') {
-                showToast('Memindai Wajah Pengguna...', 'info');
-                setTimeout(() => {
-                    stopCamera();
-                    showToast(`Verifikasi Wajah Berhasil! Selamat Datang ${user.name}`, 'success');
-                    loginSuccess(user);
-                }, 1200);
-            } else {
-                if (!loginUploadedPhotoBase64) {
-                    showToast('Silakan unggah foto wajah terlebih dahulu', 'error');
-                    return;
+        // MEMERIKSA BILA LINK DI-SHARE MEMBAWA DATA TERBARU DARI ADMIN
+        function checkUrlSyncData() {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#data=')) {
+                try {
+                    const encodedData = hash.replace('#data=', '');
+                    const decodedJson = decodeURIComponent(atob(encodedData));
+                    const importedUsers = JSON.parse(decodedJson);
+                    
+                    if (Array.isArray(importedUsers) && importedUsers.length > 0) {
+                        localStorage.setItem('ppnpn_users', JSON.stringify(importedUsers));
+                        document.getElementById('syncBanner').classList.remove('hidden');
+                        // Bersihkan URL Hash agar rapi kembali
+                        window.history.replaceState(null, null, window.location.pathname);
+                    }
+                } catch (e) {
+                    console.error('Gagal mengurai data sinkronisasi:', e);
                 }
-                showToast('Memeriksa File Foto Biometrik...', 'info');
-                setTimeout(() => {
-                    showToast(`Autentikasi Foto Sukses! Selamat Datang ${user.name}`, 'success');
-                    loginSuccess(user);
-                }, 1000);
+            }
+            users = JSON.parse(localStorage.getItem('ppnpn_users')) || DEFAULT_USERS;
+        }
+
+        // FUNGSI UTAMA ADMIN UNTUK MEMBAGIKAN LINK + SYNC DATA TERBARU
+        function copyShareableLink() {
+            try {
+                const jsonString = JSON.stringify(users);
+                const base64Data = btoa(encodeURIComponent(jsonString));
+                const shareableUrl = `${window.location.origin}${window.location.pathname}#data=${base64Data}`;
+
+                navigator.clipboard.writeText(shareableUrl).then(() => {
+                    alert(' Link Khusus Pegawai Berhasil Disalin!\n\nKirimkan link yang baru disalin ini melalui WhatsApp / Grup Pegawai. Ketika pegawai membuka link tersebut, daftar nama terbaru yang Anda buat akan otomatis muncul di HP mereka.');
+                }).catch(() => {
+                    prompt('Salin link berikut dan bagikan ke HP pegawai:', shareableUrl);
+                });
+            } catch (err) {
+                alert('Gagal membuat link sinkronisasi: Data terlalu besar.');
             }
         }
 
-        function fillDemo(type) {
-            if (type === 'admin') {
-                document.getElementById('loginUsername').value = 'admin';
-                document.getElementById('loginPassword').value = 'admin123';
+        function renderPegawaiDropdown() {
+            const select = document.getElementById('selectNamaPegawai');
+            const ppnpnList = users.filter(u => u.role !== 'admin');
+
+            if (ppnpnList.length === 0) {
+                select.innerHTML = `<option value="">-- Belum ada pegawai terdaftar --</option>`;
+                document.getElementById('pegawaiCountMsg').innerText = "Belum ada data PPNPN. Minta Admin membagikan link data terbaru.";
+                return;
+            }
+
+            select.innerHTML = ppnpnList.map(u => `<option value="${u.username}">${u.nama} (${u.jabatan})</option>`).join('');
+            document.getElementById('pegawaiCountMsg').innerText = `Terdeteksi ${ppnpnList.length} nama PPNPN terdaftar.`;
+        }
+
+        function toggleAdminLoginForm() {
+            const form = document.getElementById('formAdminLogin');
+            const txt = document.getElementById('adminToggleText');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                txt.innerText = "Sembunyikan Form Admin";
             } else {
-                document.getElementById('loginUsername').value = 'budi';
-                document.getElementById('loginPassword').value = 'user123';
+                form.classList.add('hidden');
+                txt.innerText = "Login Administrator / TU";
             }
         }
 
-        function handlePasswordLogin(e) {
+        function handleAdminLogin(e) {
             e.preventDefault();
-            const u = document.getElementById('loginUsername').value;
-            const p = document.getElementById('loginPassword').value;
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
 
-            const user = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.pass === p);
-            if (user) {
-                loginSuccess(user);
+            const found = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p && x.role === 'admin');
+            
+            if (found) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('userInfoHeader').classList.remove('hidden');
+                document.getElementById('userBadge').innerText = `${found.nama}`;
+                document.getElementById('adminDashboard').classList.remove('hidden');
             } else {
-                showToast('Username atau Kata Sandi Salah!', 'error');
-            }
-        }
-
-        function loginSuccess(user) {
-            currentUser = user;
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('navUserArea').classList.remove('hidden');
-            document.getElementById('navUserName').innerText = user.name;
-            document.getElementById('navUserRole').innerText = user.role === 'admin' ? 'Staf Subbagian TU' : (user.jabatan || 'PPNPN Kanim Banggai');
-
-            if (user.role === 'admin') {
-                document.getElementById('adminSection').classList.remove('hidden');
-                renderAdminDashboard();
-            } else {
-                document.getElementById('employeeSection').classList.remove('hidden');
-                document.getElementById('empGreeting').innerText = `Selamat Datang, ${user.name}`;
-                initEmployeeDashboard();
+                alert('Akses Ditolak! Username / Password Admin salah.');
             }
         }
 
         function logout() {
-            currentUser = null;
-            stopCamera();
-            document.getElementById('authSection').classList.remove('hidden');
-            document.getElementById('navUserArea').classList.add('hidden');
-            document.getElementById('employeeSection').classList.add('hidden');
-            document.getElementById('adminSection').classList.add('hidden');
+            location.reload();
         }
 
-        function stopCamera() {
-            if (activeVideoStream) {
-                activeVideoStream.getTracks().forEach(track => track.stop());
-                activeVideoStream = null;
-            }
-        }
+        function renderUserTable() {
+            const tbody = document.getElementById('tableUserBody');
+            const ppnpnList = users.filter(u => u.role !== 'admin');
 
-        function initEmployeeDashboard() {
-            initEmployeeMap();
-            if (empFaceSource === 'cam') startEmployeeCamera();
-            renderPersonalLogs();
-        }
-
-        function setEmpFaceSource(src) {
-            empFaceSource = src;
-            const camBtn = document.getElementById('empModeCamBtn');
-            const fileBtn = document.getElementById('empModeFileBtn');
-            const camCont = document.getElementById('empCamContainer');
-            const fileCont = document.getElementById('empFileContainer');
-
-            if (src === 'cam') {
-                camBtn.className = "px-2.5 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                fileBtn.className = "px-2.5 py-1 font-semibold rounded-md text-slate-600";
-                camCont.classList.remove('hidden');
-                fileCont.classList.add('hidden');
-                startEmployeeCamera();
-            } else {
-                fileBtn.className = "px-2.5 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                camBtn.className = "px-2.5 py-1 font-semibold rounded-md text-slate-600";
-                fileCont.classList.remove('hidden');
-                camCont.classList.add('hidden');
-                stopCamera();
-            }
-        }
-
-        function startEmployeeCamera() {
-            stopCamera();
-            const video = document.getElementById('empCamVideo');
-            const overlay = document.getElementById('empCamOverlay');
-
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    activeVideoStream = stream;
-                    video.srcObject = stream;
-                    if (overlay) overlay.classList.remove('hidden');
-                })
-                .catch(() => {
-                    showToast('Kamera tidak aktif. Anda dapat beralih ke tombol Unggah Foto', 'info');
-                });
-        }
-
-        function previewEmpFaceFile(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    empUploadedPhotoBase64 = evt.target.result;
-                    const img = document.getElementById('empFilePreview');
-                    const ph = document.getElementById('empFilePlaceholder');
-                    img.src = empUploadedPhotoBase64;
-                    img.classList.remove('hidden');
-                    ph.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function initUserPositionWatcher() {
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(pos => {
-                    userCurrentPos = {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude
-                    };
-                    updateLocationStatus();
-                }, () => {
-                    updateLocationStatus();
-                });
-            } else {
-                updateLocationStatus();
-            }
-        }
-
-        function updateSimulatedDistance(val) {
-            simulatedDistOffset = parseInt(val);
-            document.getElementById('simDistLabel').innerText = `${simulatedDistOffset} meter`;
-            updateLocationStatus();
-        }
-
-        function updateLocationStatus() {
-            const currentDist = simulatedDistOffset; 
-
-            const badge = document.getElementById('radiusBadge');
-            const distVal = document.getElementById('distVal');
-            const maxRad = document.getElementById('maxRadiusVal');
-            const btnMasuk = document.getElementById('btnAbsenMasuk');
-            const btnPulang = document.getElementById('btnAbsenPulang');
-
-            if (distVal) distVal.innerText = `${currentDist} m`;
-            if (maxRad) maxRad.innerText = `${settings.radiusMeter} m`;
-
-            const isWithinRadius = currentDist <= settings.radiusMeter;
-
-            if (badge) {
-                if (isWithinRadius) {
-                    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 flex items-center gap-1";
-                    badge.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Dalam Radius Kanim (${currentDist}m)`;
-                    if(btnMasuk) btnMasuk.disabled = false;
-                    if(btnPulang) btnPulang.disabled = false;
-                } else {
-                    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1";
-                    badge.innerHTML = `<i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Di Luar Radius (${currentDist}m)`;
-                    if(btnMasuk) btnMasuk.disabled = true;
-                    if(btnPulang) btnPulang.disabled = true;
-                }
-                lucide.createIcons();
-            }
-
-            if (empMarker && empMap) {
-                const simLat = settings.officeLat + (simulatedDistOffset * 0.000009); 
-                const simLng = settings.officeLng;
-                empMarker.setLatLng([simLat, simLng]);
-            }
-        }
-
-        function initEmployeeMap() {
-            if (empMap) return;
-            empMap = L.map('map').setView([settings.officeLat, settings.officeLng], 18);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(empMap);
-
-            empCircle = L.circle([settings.officeLat, settings.officeLng], {
-                color: '#4f46e5',
-                fillColor: '#6366f1',
-                fillOpacity: 0.2,
-                radius: settings.radiusMeter
-            }).addTo(empMap);
-
-            empMarker = L.marker([settings.officeLat, settings.officeLng]).addTo(empMap)
-                .bindPopup("Kantor Imigrasi Banggai").openPopup();
-
-            setTimeout(() => { empMap.invalidateSize(); }, 300);
-        }
-
-        function processAttendance(type) {
-            const currentDist = simulatedDistOffset;
-            if (currentDist > settings.radiusMeter) {
-                showToast('Absensi Ditolak! Anda berada di luar radius lokasi Kantor Imigrasi.', 'error');
+            if (ppnpnList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Belum ada data pegawai PPNPN terdaftar.</td></tr>`;
                 return;
             }
 
-            let finalPhoto = null;
-
-            if (empFaceSource === 'cam') {
-                const video = document.getElementById('empCamVideo');
-                const canvas = document.getElementById('empCapCanvas');
-                if (video && video.readyState === 4) {
-                    const context = canvas.getContext('2d');
-                    canvas.width = 320;
-                    canvas.height = 240;
-                    context.drawImage(video, 0, 0, 320, 240);
-                    finalPhoto = canvas.toDataURL('image/jpeg');
-                } else if (currentUser.faceData) {
-                    finalPhoto = currentUser.faceData;
-                } else {
-                    finalPhoto = 'https://placehold.co/320x240/1e293b/f59e0b?text=Snapshot+Kamera';
-                }
-            } else {
-                if (!empUploadedPhotoBase64) {
-                    showToast('Harap unggah foto wajah sebelum melakukan presensi.', 'error');
-                    return;
-                }
-                finalPhoto = empUploadedPhotoBase64;
-            }
-
-            const now = new Date();
-            let statusWaktu = 'Tepat Waktu';
-            
-            if (type === 'MASUK') {
-                const [startH, startM] = settings.workStart.split(':').map(Number);
-                const limitMinutes = (startH * 60) + startM + parseInt(settings.lateToleranceMin);
-                const currentMinutes = (now.getHours() * 60) + now.getMinutes();
-
-                if (currentMinutes > limitMinutes) {
-                    statusWaktu = 'Terlambat';
-                }
-            }
-
-            const record = {
-                id: Date.now().toString(),
-                userId: currentUser.id,
-                userName: currentUser.name,
-                type: type,
-                timestamp: now.toISOString(),
-                dateStr: now.toLocaleDateString('id-ID'),
-                timeStr: now.toLocaleTimeString('id-ID'),
-                distance: currentDist,
-                statusWaktu: statusWaktu,
-                lat: settings.officeLat + (simulatedDistOffset * 0.000009),
-                lng: settings.officeLng,
-                photo: finalPhoto
-            };
-
-            attendanceLogs.unshift(record);
-            localStorage.setItem('kanim_ppnpn_attendance', JSON.stringify(attendanceLogs));
-
-            showToast(`Presensi ${type} Berhasil Diperbarui!`, 'success');
-            renderPersonalLogs();
-        }
-
-        function renderPersonalLogs() {
-            const container = document.getElementById('personalLogList');
-            if (!container) return;
-
-            const myLogs = attendanceLogs.filter(x => x.userId === currentUser.id);
-
-            if (myLogs.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Belum ada catatan presensi.</p>`;
-                return;
-            }
-
-            container.innerHTML = myLogs.map(item => `
-                <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
-                    <div class="flex items-center gap-3">
-                        <img src="${item.photo}" class="w-10 h-10 rounded-lg object-cover border" alt="Wajah">
-                        <div>
-                            <span class="font-bold text-slate-800 block">${item.type} - ${item.timeStr}</span>
-                            <span class="text-[10px] text-slate-400 block">${item.dateStr} (${item.distance}m)</span>
-                        </div>
-                    </div>
-                    <span class="px-2 py-1 rounded-full text-[10px] font-bold ${item.statusWaktu === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                        ${item.statusWaktu}
-                    </span>
-                </div>
-            `).join('');
-        }
-
-        function renderAdminDashboard() {
-            const totalEmployees = users.filter(x => x.role === 'user').length;
-            const onTimeCount = attendanceLogs.filter(x => x.statusWaktu === 'Tepat Waktu').length;
-            const lateCount = attendanceLogs.filter(x => x.statusWaktu === 'Terlambat').length;
-
-            document.getElementById('statTotalPegawai').innerText = totalEmployees;
-            document.getElementById('statHadirOnTime').innerText = onTimeCount;
-            document.getElementById('statTerlambat').innerText = lateCount;
-            document.getElementById('statTotalRecord').innerText = attendanceLogs.length;
-
-            renderAdminRekapTable();
-            renderAdminPegawaiTable();
-            initAdminMap();
-        }
-
-        function switchAdminTab(tab) {
-            document.getElementById('adminTabRekap').classList.add('hidden');
-            document.getElementById('adminTabPegawai').classList.add('hidden');
-            document.getElementById('adminTabMap').classList.add('hidden');
-            document.getElementById('adminTabSettings').classList.add('hidden');
-
-            document.getElementById('adminTabRekapBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap";
-            document.getElementById('adminTabPegawaiBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap";
-            document.getElementById('adminTabMapBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap";
-            document.getElementById('adminTabSettingsBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap";
-
-            if (tab === 'rekap') {
-                document.getElementById('adminTabRekap').classList.remove('hidden');
-                document.getElementById('adminTabRekapBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap";
-            } else if (tab === 'pegawai') {
-                document.getElementById('adminTabPegawai').classList.remove('hidden');
-                document.getElementById('adminTabPegawaiBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap";
-            } else if (tab === 'map') {
-                document.getElementById('adminTabMap').classList.remove('hidden');
-                document.getElementById('adminTabMapBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap";
-                setTimeout(() => { if (adminMapObj) adminMapObj.invalidateSize(); }, 200);
-            } else {
-                document.getElementById('adminTabSettings').classList.remove('hidden');
-                document.getElementById('adminTabSettingsBtn').className = "py-3 px-5 font-semibold text-xs sm:text-sm border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap";
-            }
-        }
-
-        function renderAdminRekapTable() {
-            const tbody = document.getElementById('adminTableBody');
-            const search = document.getElementById('adminSearchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('adminFilterType').value;
-
-            let filtered = attendanceLogs.filter(x => {
-                const matchName = x.userName.toLowerCase().includes(search);
-                const matchType = typeFilter === 'ALL' || x.type === typeFilter;
-                return matchName && matchType;
-            });
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400 text-xs">Belum ada data presensi PPNPN.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filtered.map(item => `
+            tbody.innerHTML = ppnpnList.map(u => `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4 font-mono text-xs">${item.dateStr} <br><span class="text-slate-400">${item.timeStr}</span></td>
-                    <td class="p-4 font-semibold text-slate-800">${item.userName}</td>
-                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-xs font-semibold">${item.type}</span></td>
-                    <td class="p-4">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.statusWaktu === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                            ${item.statusWaktu}
-                        </span>
+                    <td class="p-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>
                     </td>
-                    <td class="p-4 text-xs font-medium">${item.distance} meter</td>
-                    <td class="p-4">
-                        <button onclick="openModal('${item.photo}')" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold flex items-center gap-1">
-                            <i data-lucide="image" class="w-4 h-4"></i> Lihat Foto
-                        </button>
-                    </td>
-                    <td class="p-4">
-                        <button onclick="deleteAttendanceRecord('${item.id}')" class="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus
+                    <td class="p-3 font-mono text-xs font-bold text-slate-700">${u.username}</td>
+                    <td class="p-3 font-semibold text-indigo-950">${u.nama}</td>
+                    <td class="p-3 text-slate-600 text-xs font-medium">${u.jabatan}</td>
+                    <td class="p-3"><span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Aktif</span></td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="hapusUser('${u.username}')" class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition">
+                            <i class="fa-solid fa-trash mr-1"></i> Hapus
                         </button>
                     </td>
                 </tr>
             `).join('');
-
-            lucide.createIcons();
         }
 
-        function renderAdminPegawaiTable() {
-            const tbody = document.getElementById('adminPegawaiTableBody');
-            if (!tbody) return;
-
-            tbody.innerHTML = users.map(u => {
-                const hasFace = !!u.faceData;
-                const faceBadge = hasFace 
-                    ? `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1 w-max"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Terekam</span>`
-                    : `<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 flex items-center gap-1 w-max"><i data-lucide="alert-circle" class="w-3 h-3"></i> Belum Terekam</span>`;
-                
-                const faceThumb = hasFace 
-                    ? `<img src="${u.faceData}" onclick="openModal('${u.faceData}')" class="w-9 h-9 rounded-lg object-cover border border-slate-300 cursor-pointer" alt="Wajah">`
-                    : `<div class="w-9 h-9 rounded-lg bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 text-[10px]">No Pic</div>`;
-
-                return `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4">${faceThumb}</td>
-                    <td class="p-4 font-semibold text-slate-800">${u.name}</td>
-                    <td class="p-4 text-xs font-mono text-slate-600">${u.username}</td>
-                    <td class="p-4 text-xs text-slate-600">${u.jabatan || '-'}</td>
-                    <td class="p-4">${faceBadge}</td>
-                    <td class="p-4">
-                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}">
-                            ${u.role === 'admin' ? 'Admin Subbagian TU' : 'PPNPN'}
-                        </span>
-                    </td>
-                    <td class="p-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                            <button onclick="editUser('${u.id}')" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit / Wajah
-                            </button>
-                            ${u.id !== '1' ? `
-                            <button onclick="deleteUser('${u.id}')" class="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
-                            </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `}).join('');
-
-            lucide.createIcons();
+        function openModalUser(mode) {
+            document.getElementById('modalUserForm').classList.remove('hidden');
         }
 
-        /* Modal PPNPN Add / Edit & Save Wajah Biometrik Controls */
-        function openAddUserModal() {
-            document.getElementById('userModalTitle').innerText = 'Tambah PPNPN Baru & Rekam Wajah';
-            document.getElementById('editUserId').value = '';
-            document.getElementById('editName').value = '';
-            document.getElementById('editUsername').value = '';
-            document.getElementById('editJabatan').value = '';
-            document.getElementById('editPass').value = '';
-            document.getElementById('editRole').value = 'user';
-            
-            modalCapturedFaceBase64 = null;
-            updateModalFacePreview();
-            setModalFaceSource('cam');
-            document.getElementById('userModal').classList.remove('hidden');
+        function closeModalUser() {
+            document.getElementById('modalUserForm').classList.add('hidden');
         }
 
-        function editUser(id) {
-            const u = users.find(x => x.id === id);
-            if (!u) return;
-
-            document.getElementById('userModalTitle').innerText = 'Edit Data PPNPN & Wajah Biometrik';
-            document.getElementById('editUserId').value = u.id;
-            document.getElementById('editName').value = u.name;
-            document.getElementById('editUsername').value = u.username;
-            document.getElementById('editJabatan').value = u.jabatan || '';
-            document.getElementById('editPass').value = u.pass;
-            document.getElementById('editRole').value = u.role;
-
-            modalCapturedFaceBase64 = u.faceData || null;
-            updateModalFacePreview();
-            setModalFaceSource('cam');
-            document.getElementById('userModal').classList.remove('hidden');
-        }
-
-        function setModalFaceSource(src) {
-            modalFaceSource = src;
-            const camBtn = document.getElementById('modalCamSourceBtn');
-            const fileBtn = document.getElementById('modalFileSourceBtn');
-            const camCont = document.getElementById('modalCamContainer');
-            const fileCont = document.getElementById('modalFileContainer');
-
-            if (src === 'cam') {
-                camBtn.className = "flex-1 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                fileBtn.className = "flex-1 py-1 font-semibold rounded-md text-slate-600";
-                camCont.classList.remove('hidden');
-                fileCont.classList.add('hidden');
-                startModalWebcam();
-            } else {
-                fileBtn.className = "flex-1 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm";
-                camBtn.className = "flex-1 py-1 font-semibold rounded-md text-slate-600";
-                fileCont.classList.remove('hidden');
-                camCont.classList.add('hidden');
-                stopCamera();
-            }
-        }
-
-        function startModalWebcam() {
-            stopCamera();
-            const video = document.getElementById('modalFaceVideo');
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    activeVideoStream = stream;
-                    video.srcObject = stream;
-                })
-                .catch(() => {
-                    showToast('Kamera tidak dapat diakses untuk modal', 'info');
-                });
-        }
-
-        function captureModalWebcamFace() {
-            const video = document.getElementById('modalFaceVideo');
-            const canvas = document.getElementById('modalCapCanvas');
-            if (video && video.readyState === 4) {
-                const ctx = canvas.getContext('2d');
-                canvas.width = 240;
-                canvas.height = 240;
-                ctx.drawImage(video, 0, 0, 240, 240);
-                modalCapturedFaceBase64 = canvas.toDataURL('image/jpeg');
-                updateModalFacePreview();
-                showToast('Foto Wajah Berhasil Ditangkap!', 'success');
-            } else {
-                showToast('Kamera belum siap, coba beberapa saat lagi', 'error');
-            }
-        }
-
-        function previewModalFaceFile(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    modalCapturedFaceBase64 = evt.target.result;
-                    updateModalFacePreview();
-                    showToast('Foto File Berhasil Dimuat', 'success');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function updateModalFacePreview() {
-            const img = document.getElementById('modalFacePreviewImg');
-            const badge = document.getElementById('editFaceStatusBadge');
-            const txt = document.getElementById('modalFacePreviewText');
-
-            if (modalCapturedFaceBase64) {
-                img.src = modalCapturedFaceBase64;
-                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700";
-                badge.innerText = "Terekam / Tersimpan";
-                txt.innerText = "Foto Wajah Siap Disimpan";
-            } else {
-                img.src = "https://placehold.co/100x100/e2e8f0/64748b?text=Wajah";
-                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700";
-                badge.innerText = "Belum Ada Foto";
-                txt.innerText = "Belum ada foto wajah";
-            }
-        }
-
-        function saveUserForm(e) {
+        function handleSaveUser(e) {
             e.preventDefault();
-            const id = document.getElementById('editUserId').value;
-            const name = document.getElementById('editName').value;
-            const username = document.getElementById('editUsername').value;
-            const jabatan = document.getElementById('editJabatan').value;
-            const pass = document.getElementById('editPass').value;
-            const role = document.getElementById('editRole').value;
+            const u = document.getElementById('addUsername').value.trim();
+            const n = document.getElementById('addNama').value.trim();
+            const j = document.getElementById('addJabatan').value.trim();
+            const p = document.getElementById('addPassword').value.trim();
 
-            if (id) {
-                const idx = users.findIndex(x => x.id === id);
-                if (idx !== -1) {
-                    users[idx] = { 
-                        ...users[idx], 
-                        name, 
-                        username, 
-                        jabatan, 
-                        pass, 
-                        role,
-                        faceData: modalCapturedFaceBase64
-                    };
-                }
-                showToast('Data PPNPN & Biometrik Wajah Berhasil Disimpan', 'success');
-            } else {
-                const newUser = {
-                    id: Date.now().toString(),
-                    name,
-                    username,
-                    jabatan,
-                    pass,
-                    role,
-                    faceData: modalCapturedFaceBase64
-                };
-                users.push(newUser);
-                showToast('PPNPN Baru & Biometrik Wajah Berhasil Ditambahkan', 'success');
-            }
-
-            localStorage.setItem('kanim_ppnpn_users', JSON.stringify(users));
-            closeUserModal();
-            renderAdminDashboard();
-            populateLoginUserDropdown();
-        }
-
-        function deleteUser(id) {
-            showConfirm('Hapus Data Pegawai', 'Apakah Anda yakin ingin menghapus data PPNPN ini secara permanen?', () => {
-                users = users.filter(x => x.id !== id);
-                localStorage.setItem('kanim_ppnpn_users', JSON.stringify(users));
-                showToast('Data PPNPN berhasil dihapus', 'success');
-                renderAdminDashboard();
-                populateLoginUserDropdown();
-            });
-        }
-
-        function deleteAttendanceRecord(id) {
-            showConfirm('Hapus Record Presensi', 'Hapus catatan presensi ini dari rekapitulasi?', () => {
-                attendanceLogs = attendanceLogs.filter(x => x.id !== id);
-                localStorage.setItem('kanim_ppnpn_attendance', JSON.stringify(attendanceLogs));
-                showToast('Record presensi berhasil dihapus', 'success');
-                renderAdminDashboard();
-            });
-        }
-
-        function closeUserModal() {
-            stopCamera();
-            document.getElementById('userModal').classList.add('hidden');
-        }
-
-        function initAdminMap() {
-            if (adminMapObj) return;
-            adminMapObj = L.map('adminMap').setView([settings.officeLat, settings.officeLng], 16);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(adminMapObj);
-
-            L.circle([settings.officeLat, settings.officeLng], {
-                color: '#4f46e5',
-                fillColor: '#6366f1',
-                fillOpacity: 0.15,
-                radius: settings.radiusMeter
-            }).addTo(adminMapObj);
-
-            attendanceLogs.forEach(log => {
-                L.marker([log.lat, log.lng]).addTo(adminMapObj)
-                    .bindPopup(`<b>${log.userName}</b><br>${log.type} - ${log.timeStr}<br>Jarak: ${log.distance}m`);
-            });
-        }
-
-        function initSettingsFormValues() {
-            document.getElementById('cfgLat').value = settings.officeLat;
-            document.getElementById('cfgLng').value = settings.officeLng;
-            document.getElementById('cfgRadius').value = settings.radiusMeter;
-            document.getElementById('cfgTolerance').value = settings.lateToleranceMin;
-            document.getElementById('cfgWorkStart').value = settings.workStart;
-            document.getElementById('cfgWorkEnd').value = settings.workEnd;
-        }
-
-        function saveAdminSettings(e) {
-            e.preventDefault();
-            settings.officeLat = parseFloat(document.getElementById('cfgLat').value);
-            settings.officeLng = parseFloat(document.getElementById('cfgLng').value);
-            settings.radiusMeter = parseInt(document.getElementById('cfgRadius').value);
-            settings.lateToleranceMin = parseInt(document.getElementById('cfgTolerance').value);
-            settings.workStart = document.getElementById('cfgWorkStart').value;
-            settings.workEnd = document.getElementById('cfgWorkEnd').value;
-
-            localStorage.setItem('kanim_ppnpn_settings', JSON.stringify(settings));
-            showToast('Pengaturan Kanim Banggai Disimpan!', 'success');
-        }
-
-        function exportToCSV() {
-            if (attendanceLogs.length === 0) {
-                showToast('Tidak ada data presensi untuk diekspor', 'error');
+            if (users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
+                alert('Username sudah dipakai!');
                 return;
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,Tanggal,Waktu,Nama PPNPN,Tipe Absen,Status Waktu,Jarak (Meter)\n";
-            attendanceLogs.forEach(row => {
-                csvContent += `"${row.dateStr}","${row.timeStr}","${row.userName}","${row.type}","${row.statusWaktu}","${row.distance}"\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Rekap_Presensi_PPNPN_KanimBanggai_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            users.push({ username: u, password: p, nama: n, jabatan: j, role: "user", faceImage: null });
+            localStorage.setItem('ppnpn_users', JSON.stringify(users));
+            
+            closeModalUser();
+            renderUserTable();
+            renderPegawaiDropdown();
+            alert(`Pegawai ${n} Berhasil Didaftarkan!\n\nSANGAT PENTING: Jangan lupa klik tombol "Bagikan Link ke Pegawai (Sync Data)" lalu kirimkan linknya ke grup WhatsApp agar nama baru ini muncul di HP pegawai!`);
         }
 
-        function openModal(imgSrc) {
-            document.getElementById('modalImg').src = imgSrc;
-            document.getElementById('imageModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('imageModal').classList.add('hidden');
+        function hapusUser(username) {
+            if (confirm(`Yakin menghapus data pegawai ${username}?`)) {
+                users = users.filter(x => x.username !== username);
+                localStorage.setItem('ppnpn_users', JSON.stringify(users));
+                renderUserTable();
+                renderPegawaiDropdown();
+            }
         }
     </script>
 </body>
