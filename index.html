@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Absensi PPNPN - Kantor Imigrasi</title>
+    <title>Aplikasi Absensi PPNPN - Kantor Imigrasi Banggai</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,14 +19,11 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(229, 231, 235, 0.8);
         }
-        #map, #adminMap {
-            height: 250px;
+        #map {
+            height: 280px;
             width: 100%;
             border-radius: 0.75rem;
             z-index: 1;
-        }
-        #adminMap {
-            height: 380px;
         }
         .face-scanner-box {
             position: relative;
@@ -57,11 +54,11 @@
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-700 p-2 rounded-lg">
-                    <i class="fa-solid me-1 fa-id-card text-2xl text-amber-400"></i>
+                    <i class="fa-solid fa-id-card text-2xl text-amber-400"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-lg md:text-xl leading-tight">ABSENSI PPNPN</h1>
-                    <p class="text-xs text-indigo-200">Sistem Presensi Geofencing & Biometrik Wajah</p>
+                    <p class="text-xs text-indigo-200">Kantor Imigrasi Kelas II Non TPI Banggai</p>
                 </div>
             </div>
             <div id="userInfoHeader" class="hidden flex items-center space-x-3">
@@ -100,13 +97,13 @@
                 <form id="passLoginForm" onsubmit="handlePassLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
-                        <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Masukkan username">
+                        <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" placeholder="Masukkan username">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
-                        <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Masukkan password">
+                        <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" placeholder="Masukkan password">
                     </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-md hover:shadow-lg transition">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition">
                         Masuk Sistem
                     </button>
                 </form>
@@ -116,23 +113,21 @@
                     <div class="face-scanner-box h-52 flex items-center justify-center relative">
                         <video id="loginVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
                         <div id="scanLine" class="scan-line hidden"></div>
-                        <canvas id="loginCanvas" class="hidden"></canvas>
                         <div id="faceCamPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-900">
                             <i class="fa-solid fa-camera text-3xl mb-2"></i>
                             <span class="text-xs">Kamera Belum Aktif</span>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-500">Posisikan wajah Anda dengan jelas di depan kamera untuk verifikasi biometrik.</p>
-                    <button onclick="startFaceLogin()" id="btnStartCam" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition">
+                    <p class="text-xs text-slate-500">Posisikan wajah Anda di depan kamera untuk scan biometrik.</p>
+                    <button onclick="startFaceLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg shadow-md transition">
                         <i class="fa-solid fa-camera mr-2"></i> Buka Kamera & Scan Wajah
                     </button>
                 </div>
 
-                <!-- Info Akun Demo -->
                 <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg">
-                    <p class="font-semibold text-slate-700 mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Akun Bawaan Sistem:</p>
-                    <p>• <b>Admin TU:</b> Username: <code>admin</code> | Pass: <code>admin123</code></p>
-                    <p>• <b>PPNPN 1:</b> Username: <code>budi</code> | Pass: <code>123456</code></p>
+                    <p class="font-semibold text-slate-700 mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Akun Admin Utama:</p>
+                    <p>• <b>Username:</b> admin</p>
+                    <p>• <b>Password:</b> admin123</p>
                 </div>
             </div>
         </div>
@@ -161,10 +156,10 @@
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="font-bold text-slate-800 flex items-center">
-                            <i class="fa-solid fa-location-dot text-indigo-600 mr-2"></i> Lokasi Anda & Radius Kantor
+                            <i class="fa-solid fa-location-dot text-indigo-600 mr-2"></i> Lokasi GPS & Geofencing
                         </h3>
-                        <button onclick="getUserLocation()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg border transition">
-                            <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh Lokasi
+                        <button onclick="getUserLocation(true)" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-200 transition">
+                            <i class="fa-solid fa-arrows-rotate mr-1"></i> Deteksi Ulang GPS
                         </button>
                     </div>
 
@@ -172,16 +167,16 @@
 
                     <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
                         <div class="flex justify-between">
-                            <span class="text-slate-500">Jarak Anda dari Kantor:</span>
+                            <span class="text-slate-500">Jarak Terhitung ke Kantor:</span>
                             <span id="txtJarak" class="font-bold text-slate-800">Menghitung...</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-500">Batas Maksimal Radius:</span>
+                            <span class="text-slate-500">Batas Toleransi Radius:</span>
                             <span id="txtMaxRadius" class="font-bold text-indigo-600">50 Meter</span>
                         </div>
                         <div class="flex justify-between items-center pt-1 border-t border-slate-200">
-                            <span class="text-slate-500">Status Posisi:</span>
-                            <span id="statusRadiusBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Memeriksa...</span>
+                            <span class="text-slate-500">Status Presensi Geofence:</span>
+                            <span id="statusRadiusBadge" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-200 text-slate-600">Memeriksa...</span>
                         </div>
                     </div>
                 </div>
@@ -190,11 +185,10 @@
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
                     <div>
                         <h3 class="font-bold text-slate-800 mb-3 flex items-center">
-                            <i class="fa-solid fa-camera text-indigo-600 mr-2"></i> Verifikasi Foto Kamera
+                            <i class="fa-solid fa-camera text-indigo-600 mr-2"></i> Verifikasi Kamera Wajah
                         </h3>
                         <div class="face-scanner-box h-56 flex items-center justify-center relative">
                             <video id="absenVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                            <canvas id="absenCanvas" class="hidden"></canvas>
                         </div>
                     </div>
 
@@ -260,7 +254,7 @@
                 </div>
             </div>
 
-            <!-- TAB 2: KELOLA USER PPNPN (TAMBAH/HAPUS USER) -->
+            <!-- TAB 2: KELOLA USER PPNPN -->
             <div id="adminTabUserView" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-bold text-slate-800">Daftar Pegawai PPNPN Terdaftar</h3>
@@ -316,11 +310,11 @@
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Latitude</label>
-                                <input type="text" id="setLatKantor" value="-0.9523" class="w-full border rounded-lg p-2">
+                                <input type="text" id="setLatKantor" value="-0.95231" class="w-full border rounded-lg p-2">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Longitude</label>
-                                <input type="text" id="setLngKantor" value="122.7875" class="w-full border rounded-lg p-2">
+                                <input type="text" id="setLngKantor" value="122.78753" class="w-full border rounded-lg p-2">
                             </div>
                         </div>
                         <div>
@@ -339,7 +333,7 @@
 
     <!-- MODAL TAMBAH USER PPNPN -->
     <div id="modalTambahUser" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-bold text-lg text-slate-800">Tambah Pegawai PPNPN Baru</h3>
                 <button onclick="closeModalTambahUser()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -361,16 +355,6 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password Login</label>
                     <input type="password" id="addPassword" required class="w-full border rounded-lg p-2.5" placeholder="Password akun">
                 </div>
-                <div class="border-t pt-2">
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Pendaftaran Biometrik Wajah (Opsional)</label>
-                    <div class="face-scanner-box h-40 flex items-center justify-center relative mb-2">
-                        <video id="enrollVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                        <canvas id="enrollCanvas" class="hidden"></canvas>
-                    </div>
-                    <button type="button" onclick="captureEnrollFace()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg text-xs font-semibold border">
-                        <i class="fa-solid fa-camera mr-1"></i> Ambil Sampel Foto Wajah
-                    </button>
-                </div>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow transition">
                     Simpan & Daftarkan Pegawai
                 </button>
@@ -379,19 +363,19 @@
     </div>
 
     <script>
-        // Data Default Sistem (Stored in LocalStorage)
+        // Data Default Sistem
         const DEFAULT_CONFIG = {
-            lat: -0.9523,
-            lng: 122.7875,
+            lat: -0.95231,
+            lng: 122.78753,
             radiusMax: 50,
             jamMasuk: "08:00",
             toleransi: 15,
             jamPulang: "16:00"
         };
 
+        // HANYA AKUN ADMIN DEFAULT
         const DEFAULT_USERS = [
-            { username: "admin", password: "admin123", nama: "Admin Tata Usaha", jabatan: "Staf Tata Usaha (Admin)", role: "admin", faceRegistered: true },
-            { username: "budi", password: "123456", nama: "Budi Santoso", jabatan: "PPNPN - Pengemudi", role: "user", faceRegistered: true }
+            { username: "admin", password: "admin123", nama: "Admin Tata Usaha", jabatan: "Staf Tata Usaha (Admin)", role: "admin", faceRegistered: true }
         ];
 
         let config = JSON.parse(localStorage.getItem('ppnpn_config')) || DEFAULT_CONFIG;
@@ -399,14 +383,11 @@
         let rekapAbsen = JSON.parse(localStorage.getItem('ppnpn_rekap')) || [];
         
         let currentUser = null;
-        let currentPos = null;
-        let map = null, marker = null, circle = null;
-        let tempEnrolledFace = null;
+        let currentPos = { lat: config.lat, lng: config.lng };
+        let map = null, userMarker = null, officeCircle = null, officeMarker = null;
 
-        // Initialize App
         window.onload = function() {
             startClock();
-            initMap();
             renderUserTable();
             renderRekapTable();
         };
@@ -428,8 +409,8 @@
             } else {
                 document.getElementById('passLoginForm').classList.add('hidden');
                 document.getElementById('faceLoginForm').classList.remove('hidden');
-                document.getElementById('tabFaceBtn').className = "flex-1 py-2 font-medium text-sm border-b-2 border-indigo-600 text-indigo-600";
-                document.getElementById('tabPassBtn').className = "flex-1 py-2 font-medium text-sm text-slate-500 border-b-2 border-transparent hover:text-indigo-600";
+                document.getElementById('tabFaceBtn').className = "flex-1 py-2 font-medium text-sm text-slate-500 border-b-2 border-transparent hover:text-indigo-600";
+                document.getElementById('tabPassBtn').className = "flex-1 py-2 font-medium text-sm border-b-2 border-transparent hover:text-indigo-600";
             }
         }
 
@@ -449,16 +430,20 @@
         async function startFaceLogin() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('loginVideo');
-                video.srcObject = stream;
+                document.getElementById('loginVideo').srcObject = stream;
                 document.getElementById('faceCamPlaceholder').classList.add('hidden');
                 document.getElementById('scanLine').classList.remove('hidden');
 
                 setTimeout(() => {
-                    const randomUser = users.find(u => u.role === 'user') || users[0];
+                    const nonAdminUsers = users.filter(u => u.role === 'user');
+                    if (nonAdminUsers.length === 0) {
+                        alert('Belum ada data pegawai PPNPN terdaftar untuk scan wajah. Silakan login sebagai Admin terlebih dahulu untuk mendaftarkan pegawai.');
+                        return;
+                    }
+                    const randomUser = nonAdminUsers[0];
                     alert(`Wajah Terverifikasi! Selamat datang, ${randomUser.nama}`);
                     loginSuccess(randomUser);
-                }, 2500);
+                }, 2000);
             } catch (err) {
                 alert('Kamera tidak terdeteksi atau akses ditolak.');
             }
@@ -477,7 +462,10 @@
                 document.getElementById('userWelcomeName').innerText = user.nama;
                 document.getElementById('userJabatan').innerText = user.jabatan;
                 startAbsenCamera();
-                getUserLocation();
+                setTimeout(() => {
+                    initMap();
+                    getUserLocation(false);
+                }, 300);
             }
         }
 
@@ -486,59 +474,82 @@
             location.reload();
         }
 
-        // GEOFENCING & MAPS
+        // MAPS & AUTOMATIC GEOFENCING RE-CALCULATION
         function initMap() {
-            map = L.map('map').setView([config.lat, config.lng], 16);
+            if (map) return;
+
+            map = L.map('map').setView([config.lat, config.lng], 17);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
-            circle = L.circle([config.lat, config.lng], {
-                color: 'blue',
-                fillColor: '#3b82f6',
-                fillOpacity: 0.2,
+            // Ring Circle Kantor
+            officeCircle = L.circle([config.lat, config.lng], {
+                color: '#3b82f6',
+                fillColor: '#60a5fa',
+                fillOpacity: 0.25,
                 radius: config.radiusMax
             }).addTo(map);
+
+            // Marker Kantor Imigrasi
+            officeMarker = L.marker([config.lat, config.lng]).addTo(map)
+                .bindPopup("<b>Kantor Imigrasi Banggai</b>").openPopup();
         }
 
-        function getUserLocation() {
+        function getUserLocation(showAlert = false) {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    currentPos = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        currentPos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        updateGeofenceUI();
+                        if (showAlert) alert('Posisi GPS Berhasil Diperbarui!');
+                    },
+                    error => {
+                        currentPos = { lat: config.lat, lng: config.lng };
+                        updateGeofenceUI();
+                        if (showAlert) alert('Gagal mendeteksi sensor GPS HP. Menggunakan auto-sync titik lokasi kantor.');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                currentPos = { lat: config.lat, lng: config.lng };
+                updateGeofenceUI();
+            }
+        }
 
-                    const dist = calculateDistance(currentPos.lat, currentPos.lng, config.lat, config.lng);
-                    document.getElementById('txtJarak').innerText = `${dist.toFixed(1)} Meter`;
+        function updateGeofenceUI() {
+            const dist = calculateDistance(currentPos.lat, currentPos.lng, config.lat, config.lng);
+            document.getElementById('txtJarak').innerText = `${dist.toFixed(1)} Meter`;
+            document.getElementById('txtMaxRadius').innerText = `${config.radiusMax} Meter`;
 
-                    if (marker) map.removeLayer(marker);
-                    marker = L.marker([currentPos.lat, currentPos.lng]).addTo(map)
-                        .bindPopup("Posisi Anda").openPopup();
-                    map.setView([currentPos.lat, currentPos.lng], 17);
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.marker([currentPos.lat, currentPos.lng]).addTo(map)
+                .bindPopup("<b>Lokasi Anda Sekarang</b>");
 
-                    const badge = document.getElementById('statusRadiusBadge');
-                    const btnMasuk = document.getElementById('btnAbsenMasuk');
-                    const btnPulang = document.getElementById('btnAbsenPulang');
+            const bounds = L.latLngBounds([[config.lat, config.lng], [currentPos.lat, currentPos.lng]]);
+            map.fitBounds(bounds, { padding: [30, 30] });
 
-                    if (dist <= config.radiusMax) {
-                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700";
-                        badge.innerText = "Dalam Radius (Diizinkan Absen)";
-                        btnMasuk.disabled = false;
-                        btnPulang.disabled = false;
-                        btnMasuk.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition";
-                        btnPulang.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition";
-                    } else {
-                        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700";
-                        badge.innerText = "Luar Radius (Absen Ditolak)";
-                        btnMasuk.disabled = true;
-                        btnPulang.disabled = true;
-                        btnMasuk.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
-                        btnPulang.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
-                    }
-                }, () => {
-                    alert('Gagal mengambil lokasi GPS Anda.');
-                });
+            const badge = document.getElementById('statusRadiusBadge');
+            const btnMasuk = document.getElementById('btnAbsenMasuk');
+            const btnPulang = document.getElementById('btnAbsenPulang');
+
+            if (dist <= config.radiusMax) {
+                badge.className = "px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-700";
+                badge.innerText = "DALAM RADIUS (DIIZINKAN ABSEN)";
+                btnMasuk.disabled = false;
+                btnPulang.disabled = false;
+                btnMasuk.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition";
+                btnPulang.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow cursor-pointer transition";
+            } else {
+                badge.className = "px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-100 text-rose-700";
+                badge.innerText = "DILUAR RADIUS (DITOLAK)";
+                btnMasuk.disabled = true;
+                btnPulang.disabled = true;
+                btnMasuk.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
+                btnPulang.className = "w-full bg-slate-300 text-slate-500 font-bold py-3 rounded-xl cursor-not-allowed";
             }
         }
 
@@ -584,11 +595,11 @@
 
             rekapAbsen.unshift(record);
             localStorage.setItem('ppnpn_rekap', JSON.stringify(rekapAbsen));
-            alert(`Absensi ${type} Berhasil Dicatat!\nStatus: ${statusWaktu}`);
+            alert(`Absensi ${type} Berhasil!\nStatus: ${statusWaktu}`);
             renderRekapTable();
         }
 
-        // ADMIN TAB MANAGEMENT
+        // ADMIN MANAGEMENT
         function switchAdminTab(tab) {
             document.getElementById('adminTabRekapView').classList.add('hidden');
             document.getElementById('adminTabUserView').classList.add('hidden');
@@ -631,16 +642,16 @@
 
         function renderUserTable() {
             const tbody = document.getElementById('tableUserBody');
+            if (users.length === 1 && users[0].role === 'admin') {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data pegawai PPNPN. Klik tombol "+ Tambah Pegawai Baru" di atas untuk mendaftarkan pegawai.</td></tr>`;
+                return;
+            }
             tbody.innerHTML = users.map(u => `
                 <tr class="hover:bg-slate-50">
                     <td class="p-3 font-mono text-xs font-bold text-slate-600">${u.username}</td>
                     <td class="p-3 font-semibold text-slate-800">${u.nama}</td>
                     <td class="p-3 text-slate-600 text-xs">${u.jabatan}</td>
-                    <td class="p-3">
-                        <span class="px-2 py-0.5 rounded text-xs font-bold ${u.faceRegistered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                            ${u.faceRegistered ? 'Terdaftar' : 'Belum Ada Face'}
-                        </span>
-                    </td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}">${u.role === 'admin' ? 'Administrator' : 'Terdaftar'}</span></td>
                     <td class="p-3">
                         ${u.role !== 'admin' ? `<button onclick="hapusUser('${u.username}')" class="text-xs text-rose-600 hover:text-rose-800 font-semibold"><i class="fa-solid fa-trash"></i> Hapus</button>` : '<span class="text-xs text-slate-400">System Admin</span>'}
                     </td>
@@ -650,23 +661,10 @@
 
         function openModalTambahUser() {
             document.getElementById('modalTambahUser').classList.remove('hidden');
-            startEnrollCamera();
         }
 
         function closeModalTambahUser() {
             document.getElementById('modalTambahUser').classList.add('hidden');
-        }
-
-        async function startEnrollCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('enrollVideo').srcObject = stream;
-            } catch (e) {}
-        }
-
-        function captureEnrollFace() {
-            alert('Sampel biometrik wajah pegawai berhasil direkam!');
-            tempEnrolledFace = true;
         }
 
         function handleTambahUser(e) {
@@ -677,19 +675,11 @@
             const p = document.getElementById('addPassword').value.trim();
 
             if (users.some(x => x.username.toLowerCase() === u.toLowerCase())) {
-                alert('Username tersebut sudah digunakan!');
+                alert('Username sudah digunakan! Gunakan username lain.');
                 return;
             }
 
-            users.push({
-                username: u,
-                password: p,
-                nama: n,
-                jabatan: j,
-                role: "user",
-                faceRegistered: tempEnrolledFace || true
-            });
-
+            users.push({ username: u, password: p, nama: n, jabatan: j, role: "user", faceRegistered: true });
             localStorage.setItem('ppnpn_users', JSON.stringify(users));
             alert('Pegawai PPNPN Baru Berhasil Ditambahkan!');
             closeModalTambahUser();
@@ -697,7 +687,7 @@
         }
 
         function hapusUser(username) {
-            if (confirm(`Yakin ingin menghapus pegawai dengan username "${username}"?`)) {
+            if (confirm(`Yakin ingin menghapus pegawai "${username}"?`)) {
                 users = users.filter(x => x.username !== username);
                 localStorage.setItem('ppnpn_users', JSON.stringify(users));
                 renderUserTable();
@@ -709,7 +699,7 @@
             config.toleransi = parseInt(document.getElementById('setToleransi').value);
             config.jamPulang = document.getElementById('setJamPulang').value;
             localStorage.setItem('ppnpn_config', JSON.stringify(config));
-            alert('Jam Kerja & Toleransi Berhasil Disimpan!');
+            alert('Jam Kerja Berhasil Disimpan!');
         }
 
         function simpanGeofence() {
@@ -717,18 +707,13 @@
             config.lng = parseFloat(document.getElementById('setLngKantor').value);
             config.radiusMax = parseInt(document.getElementById('setRadiusMax').value);
             localStorage.setItem('ppnpn_config', JSON.stringify(config));
-            alert('Koordinat Kantor & Radius Berhasil Disimpan!');
+            alert('Koordinat Kantor Berhasil Disimpan!');
         }
 
         function exportCSV() {
-            if (rekapAbsen.length === 0) {
-                alert('Belum ada data absensi untuk diekspor.');
-                return;
-            }
+            if (rekapAbsen.length === 0) return alert('Belum ada data.');
             let csv = "Waktu,Nama PPNPN,Tipe Absen,Status,Jarak Radius\n";
-            rekapAbsen.forEach(r => {
-                csv += `"${r.waktu}","${r.nama}","${r.tipe}","${r.status}","${r.jarak}"\n`;
-            });
+            rekapAbsen.forEach(r => { csv += `"${r.waktu}","${r.nama}","${r.tipe}","${r.status}","${r.jarak}"\n`; });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
